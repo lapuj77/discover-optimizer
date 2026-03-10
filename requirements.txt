@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+feedparser
+anthropic
+httpx
+beautifulsoup4
+apscheduler
+jinja2
+python-dotenv

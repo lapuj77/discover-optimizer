@@ -1,0 +1,125 @@
+import json
+import anthropic
+import os
+
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+SYSTEM_PROMPT = """Tu es un expert SEO spécialisé dans Google Discover, avec une connaissance approfondie de l'algorithme, du modèle pCTR, des signaux E-E-A-T, et des mécaniques de distribution.
+
+Tu analyses des articles d'un média d'actualité tech et pop culture (Journal du Geek) et tu génères des rapports d'optimisation Discover actionnables, précis, et priorisés.
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans texte avant ou après."""
+
+ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rapport d'optimisation.
+
+## DONNÉES DE L'ARTICLE
+
+**Titre RSS/H1:** {title}
+**og:title actuel:** {og_title}
+**og:description actuelle:** {og_description}
+**Auteur:** {author}
+**Date de publication:** {published_at}
+**Catégories/Tags:** {categories}
+**URL:** {link}
+**og:image URL:** {og_image}
+**Meta robots (max-image-preview présent ?):** {robots_meta}
+**Contenu de l'article (extrait):**
+{full_content}
+
+---
+
+## CONNAISSANCES DISCOVER À APPLIQUER
+
+**Signaux critiques à vérifier :**
+1. Image 1200px+ 16:9 + meta `max-image-preview:large` obligatoire → jusqu'à +79% CTR
+2. `og:title` : 50-80 caractères, spécifique, émotionnel, honnête, entité nommée + enjeu clair
+3. `og:description` : accroche complémentaire au titre, renforce la curiosité sans spoiler
+4. Entités Knowledge Graph clairement nommées (personnes, marques, produits, lieux)
+5. Fraîcheur : le sujet colle-t-il à un trend actuel ? Y a-t-il un angle plus fort ?
+6. E-E-A-T : auteur visible, expertise démontrée dans le contenu
+7. Angle émotionnel : surprise, curiosité, polémique, urgence, exclusivité
+8. Éviter le clickbait pur (pénalise le pCTR après le 1er cycle)
+
+---
+
+## FORMAT DE RÉPONSE (JSON strict)
+
+{{
+  "score_before": <entier 0-100, score Discover actuel estimé>,
+  "score_after": <entier 0-100, score estimé après tes optimisations>,
+  "verdict": "<phrase 1 ligne résumant le potentiel Discover de cet article>",
+  "priority_fixes": [
+    {{
+      "priority": "CRITIQUE|IMPORTANT|BONUS",
+      "category": "Image|og:title|og:description|Contenu|Entités|Angle|Technique",
+      "problem": "<ce qui est problématique actuellement>",
+      "action": "<action concrète et précise à réaliser>",
+      "example": "<exemple concret : nouveau titre, nouvelle description, etc. si pertinent>"
+    }}
+  ],
+  "og_title_rewrites": [
+    "<proposition 1 de nouveau og:title>",
+    "<proposition 2 de nouveau og:title>",
+    "<proposition 3 de nouveau og:title>"
+  ],
+  "og_description_rewrite": "<nouvelle og:description optimisée>",
+  "image_status": {{
+    "has_image": <true|false>,
+    "max_image_preview_detected": <true|false>,
+    "estimated_width_ok": <true|false>,
+    "recommendation": "<recommandation image spécifique>"
+  }},
+  "entity_analysis": {{
+    "entities_found": ["<entité 1>", "<entité 2>", "..."],
+    "entities_missing": ["<entité qui devrait être mentionnée>"],
+    "knowledge_graph_strength": "<fort|moyen|faible>"
+  }},
+  "trend_alignment": {{
+    "is_timely": <true|false>,
+    "trend_context": "<explication du contexte de tendance>",
+    "freshness_window": "<durée de vie estimée dans Discover>"
+  }},
+  "quick_wins": [
+    "<action rapide 1 (< 5 min)>",
+    "<action rapide 2>",
+    "<action rapide 3>"
+  ]
+}}"""
+
+
+def analyze_article(article_data: dict) -> dict:
+    """Send article to Claude and get Discover optimization report."""
+    prompt = ANALYSIS_PROMPT.format(
+        title=article_data.get("title", ""),
+        og_title=article_data.get("og_title", "(non détecté)"),
+        og_description=article_data.get("og_description", "(non détectée)"),
+        author=article_data.get("author", ""),
+        published_at=article_data.get("published_at", ""),
+        categories=article_data.get("categories", ""),
+        link=article_data.get("link", ""),
+        og_image=article_data.get("og_image", "(aucune)"),
+        robots_meta=article_data.get("robots_meta", "(non détectée)"),
+        full_content=article_data.get("full_content", "")[:6000],
+    )
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2048,
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        system=SYSTEM_PROMPT,
+    )
+
+    raw = message.content[0].text.strip()
+
+    # Clean potential markdown code fences
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    if raw.endswith("```"):
+        raw = raw[:-3].strip()
+
+    return json.loads(raw)

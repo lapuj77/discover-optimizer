@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discover Optimizer — Journal du Geek</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <span class="logo">⚡ Discover Optimizer</span>
+        <span class="subtitle">Journal du Geek</span>
+      </div>
+      <div class="header-right">
+        <div id="stats" class="stats-bar">
+          <span class="stat" id="stat-articles">— articles</span>
+          <span class="stat" id="stat-gain">gain moyen —pts</span>
+        </div>
+        <button class="btn-poll" onclick="triggerPoll()">↻ Forcer le scan</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    {% if not articles %}
+    <div class="empty-state">
+      <div class="empty-icon">📡</div>
+      <h2>Scan en cours…</h2>
+      <p>Le premier scan RSS est lancé au démarrage. Reviens dans quelques instants.</p>
+    </div>
+    {% else %}
+    <div class="grid">
+      {% for a in articles %}
+      <article class="card" onclick="window.location='/report/{{ a.report_id }}'">
+        {% if a.og_image %}
+        <div class="card-image">
+          <img src="{{ a.og_image }}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
+        </div>
+        {% else %}
+        <div class="card-image card-image--empty">
+          <span>🖼️ Pas d'image OG</span>
+        </div>
+        {% endif %}
+
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="author">{{ a.author }}</span>
+            <span class="date">{{ a.published_at[:16] if a.published_at else '' }}</span>
+          </div>
+
+          <h2 class="card-title">{{ a.title }}</h2>
+
+          {% if a.categories %}
+          <div class="tags">
+            {% for cat in a.categories.split(', ')[:4] %}
+            <span class="tag">{{ cat }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <p class="verdict">{{ a.verdict }}</p>
+
+          <div class="card-footer">
+            <div class="scores">
+              <div class="score score--before">
+                <span class="score-label">Avant</span>
+                <span class="score-value">{{ a.score_before }}</span>
+              </div>
+              <div class="score-arrow">→</div>
+              <div class="score score--after">
+                <span class="score-label">Après</span>
+                <span class="score-value">{{ a.score_after }}</span>
+              </div>
+              <div class="score-delta {% if a.score_delta > 15 %}delta--high{% elif a.score_delta > 5 %}delta--mid{% else %}delta--low{% endif %}">
+                +{{ a.score_delta }}
+              </div>
+            </div>
+            {% if a.critical_count > 0 %}
+            <span class="badge badge--critical">{{ a.critical_count }} critique{% if a.critical_count > 1 %}s{% endif %}</span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </main>
+
+  <script>
+    async function triggerPoll() {
+      const btn = document.querySelector('.btn-poll');
+      btn.textContent = '⏳ Scan…';
+      btn.disabled = true;
+      await fetch('/trigger-poll', { method: 'POST' });
+      setTimeout(() => { btn.textContent = '↻ Forcer le scan'; btn.disabled = false; window.location.reload(); }, 5000);
+    }
+
+    async function loadStats() {
+      const r = await fetch('/api/stats');
+      const s = await r.json();
+      document.getElementById('stat-articles').textContent = `${s.total_articles} articles`;
+      const gain = (s.avg_score_after - s.avg_score_before).toFixed(1);
+      document.getElementById('stat-gain').textContent = `gain moyen +${gain}pts`;
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>

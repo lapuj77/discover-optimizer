@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.journaldugeek.com)",
+      "Bash(cd E:/dev/discover && npm init -y && npm install express better-sqlite3 rss-parser @anthropic-ai/sdk node-cron node-fetch cheerio)",
+      "Bash(python3 --version && pip3 --version)",
+      "Bash(pip3 install:*)",
+      "Bash(pip3 list:*)",
+      "Bash(cd E:/dev/discover && python3 -c \"\nimport sys\ntry:\n    import fastapi, uvicorn, feedparser, anthropic, httpx, bs4, apscheduler, jinja2, dotenv\n    print\\('OK - tous les modules sont disponibles'\\)\nexcept ImportError as e:\n    print\\(f'MANQUANT: {e}'\\)\n\")",
+      "Bash(cd E:/dev/discover && python3 main.py)",
+      "Bash(netstat -ano | grep :8000 | head -5)",
+      "Bash(taskkill /PID 23696 /F && sleep 2 && cd E:/dev/discover && python3 main.py)",
+      "Bash(cmd /c \"taskkill /PID 23696 /F\")",
+      "Bash(sleep 1 && cd E:/dev/discover && python3 main.py)",
+      "Bash(cmd /c \"netstat -ano | findstr :8000\")",
+      "Bash(cmd /c \"netstat -ano | findstr LISTEN | findstr 8000\")",
+      "Bash(cmd /c \"netstat -ano | findstr 8000\")",
+      "Bash(cmd /c \"taskkill /IM python3.exe /F 2>nul & taskkill /IM python.exe /F 2>nul & echo done\")",
+      "Bash(sleep 2 && cd E:/dev/discover && python3 main.py)",
+      "Bash(gh auth:*)",
+      "Bash(cd E:/dev/discover && gh repo create discover-optimizer --private --source=. --remote=origin --push 2>&1)"
+    ]
+  }
+}

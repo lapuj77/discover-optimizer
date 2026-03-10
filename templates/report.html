@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport — {{ article.title[:50] }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="back-link">← Dashboard</a>
+      <span class="logo">⚡ Discover Optimizer</span>
+    </div>
+  </header>
+
+  <main class="container report-container">
+
+    <!-- Hero -->
+    <div class="report-hero">
+      {% if article.og_image %}
+      <img class="report-hero-img" src="{{ article.og_image }}" alt="">
+      {% endif %}
+      <div class="report-hero-content">
+        <div class="report-meta">
+          <span class="author">{{ article.author }}</span>
+          <span class="sep">·</span>
+          <span class="date">{{ article.published_at[:16] if article.published_at else '' }}</span>
+          <span class="sep">·</span>
+          <a href="{{ article.link }}" target="_blank" class="article-link">Voir l'article ↗</a>
+        </div>
+        <h1 class="report-title">{{ article.title }}</h1>
+        {% if article.categories %}
+        <div class="tags">
+          {% for cat in article.categories.split(', ')[:6] %}
+          <span class="tag">{{ cat }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Score & Verdict -->
+    <div class="report-section score-section">
+      <div class="score-card">
+        <div class="score-display">
+          <div class="score-block">
+            <div class="score-big">{{ report.score_before }}</div>
+            <div class="score-label">Score actuel</div>
+            <div class="score-bar-wrap"><div class="score-bar score-bar--before" style="width:{{ report.score_before }}%"></div></div>
+          </div>
+          <div class="score-arrow-big">→</div>
+          <div class="score-block">
+            <div class="score-big score-big--after">{{ report.score_after }}</div>
+            <div class="score-label">Score optimisé</div>
+            <div class="score-bar-wrap"><div class="score-bar score-bar--after" style="width:{{ report.score_after }}%"></div></div>
+          </div>
+        </div>
+        <div class="verdict-box">
+          <span class="verdict-icon">💡</span>
+          <p class="verdict-text">{{ report.verdict }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Wins -->
+    {% if report.quick_wins %}
+    <div class="report-section">
+      <h2 class="section-title">⚡ Quick Wins (moins de 5 min)</h2>
+      <ul class="quick-wins">
+        {% for win in report.quick_wins %}
+        <li>{{ win }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Priority Fixes -->
+    {% if report.priority_fixes %}
+    <div class="report-section">
+      <h2 class="section-title">🔧 Corrections prioritaires</h2>
+      <div class="fixes-list">
+        {% for fix in report.priority_fixes %}
+        <div class="fix-card fix-card--{{ fix.priority | lower }}">
+          <div class="fix-header">
+            <span class="fix-priority fix-priority--{{ fix.priority | lower }}">{{ fix.priority }}</span>
+            <span class="fix-category">{{ fix.category }}</span>
+          </div>
+          <div class="fix-problem">
+            <strong>Problème :</strong> {{ fix.problem }}
+          </div>
+          <div class="fix-action">
+            <strong>Action :</strong> {{ fix.action }}
+          </div>
+          {% if fix.example %}
+          <div class="fix-example">
+            <strong>Exemple :</strong>
+            <blockquote>{{ fix.example }}</blockquote>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- og:title Rewrites -->
+    {% if report.og_title_rewrites %}
+    <div class="report-section">
+      <h2 class="section-title">✍️ Propositions de og:title</h2>
+      <div class="title-rewrites">
+        {% for t in report.og_title_rewrites %}
+        <div class="title-rewrite" onclick="copyText(this, '{{ t | replace("'", "\\'") }}')">
+          <span class="title-rewrite-text">{{ t }}</span>
+          <span class="title-len {% if t|length > 80 %}len--bad{% elif t|length >= 50 %}len--good{% else %}len--ok{% endif %}">{{ t|length }} car.</span>
+          <span class="copy-hint">Cliquer pour copier</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- og:description -->
+    {% if report.og_description_rewrite %}
+    <div class="report-section">
+      <h2 class="section-title">📝 og:description optimisée</h2>
+      <div class="description-rewrite" onclick="copyText(this, '{{ report.og_description_rewrite | replace("'", "\\'") }}')">
+        <p>{{ report.og_description_rewrite }}</p>
+        <span class="copy-hint">Cliquer pour copier</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Image Status -->
+    {% if report.image_status %}
+    <div class="report-section">
+      <h2 class="section-title">🖼️ Analyse image</h2>
+      <div class="image-status">
+        <div class="image-check">
+          <span class="check-icon">{{ '✅' if report.image_status.has_image else '❌' }}</span>
+          <span>Image og:image présente</span>
+        </div>
+        <div class="image-check">
+          <span class="check-icon">{{ '✅' if report.image_status.max_image_preview_detected else '❌' }}</span>
+          <span>Meta <code>max-image-preview:large</code> détectée</span>
+        </div>
+        <div class="image-check">
+          <span class="check-icon">{{ '✅' if report.image_status.estimated_width_ok else '⚠️' }}</span>
+          <span>Largeur estimée ≥ 1200px</span>
+        </div>
+        {% if report.image_status.recommendation %}
+        <div class="image-recommendation">
+          💬 {{ report.image_status.recommendation }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Entities -->
+    {% if report.entity_analysis %}
+    <div class="report-section">
+      <h2 class="section-title">🧬 Entités Knowledge Graph</h2>
+      <div class="entity-grid">
+        <div class="entity-col">
+          <h3>Entités détectées</h3>
+          <div class="entity-tags">
+            {% for e in report.entity_analysis.entities_found %}
+            <span class="entity-tag entity-tag--found">{{ e }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% if report.entity_analysis.entities_missing %}
+        <div class="entity-col">
+          <h3>Entités manquantes</h3>
+          <div class="entity-tags">
+            {% for e in report.entity_analysis.entities_missing %}
+            <span class="entity-tag entity-tag--missing">{{ e }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="kg-strength">
+        Ancrage Knowledge Graph :
+        <span class="strength strength--{{ report.entity_analysis.knowledge_graph_strength }}">
+          {{ report.entity_analysis.knowledge_graph_strength | upper }}
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Trend Alignment -->
+    {% if report.trend_alignment %}
+    <div class="report-section">
+      <h2 class="section-title">📡 Alignement sur les tendances</h2>
+      <div class="trend-box">
+        <div class="trend-badge {% if report.trend_alignment.is_timely %}trend--timely{% else %}trend--evergreen{% endif %}">
+          {{ '⚡ Timely' if report.trend_alignment.is_timely else '🌿 Evergreen' }}
+        </div>
+        <p class="trend-context">{{ report.trend_alignment.trend_context }}</p>
+        <div class="freshness">⏱️ Durée de vie estimée dans Discover : <strong>{{ report.trend_alignment.freshness_window }}</strong></div>
+      </div>
+    </div>
+    {% endif %}
+
+  </main>
+
+  <script>
+    function copyText(el, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const hint = el.querySelector('.copy-hint');
+        const orig = hint.textContent;
+        hint.textContent = '✅ Copié !';
+        setTimeout(() => hint.textContent = orig, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
