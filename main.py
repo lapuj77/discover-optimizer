@@ -63,32 +63,39 @@ async def poll_rss(force: bool = False):
         print(f"[RSS] Plage silencieuse ({now.strftime('%H:%M')} heure de Paris) — scan ignoré")
         return
     print("[RSS] Polling en cours...")
-    items = fetch_rss_items()
+    try:
+        items = fetch_rss_items()
+    except Exception as e:
+        print(f"[RSS] Erreur fetch RSS: {e}")
+        return
+    print(f"[RSS] {len(items)} articles dans le feed")
     new_count = 0
 
-    with get_conn() as conn:
-        for item in items:
-            exists = conn.execute(
-                "SELECT id FROM articles WHERE guid = ?", (item["guid"],)
-            ).fetchone()
-            if exists:
-                continue
+    for item in items:
+        try:
+            with get_conn() as conn:
+                exists = conn.execute(
+                    "SELECT id FROM articles WHERE guid = ?", (item["guid"],)
+                ).fetchone()
+                if exists:
+                    continue
 
-            # Fetch full content
+            # Fetch full content (hors transaction)
             page_data = fetch_article_content(item["link"])
             item.update(page_data)
 
             # Save article
-            cur = conn.execute("""
-                INSERT INTO articles (guid, title, link, author, published_at, categories, description, full_content, og_image)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                item["guid"], item["title"], item["link"], item["author"],
-                item["published_at"], item["categories"], item["description"],
-                item.get("full_content", ""), item.get("og_image", ""),
-            ))
-            article_id = cur.lastrowid
-            print(f"[RSS] Nouvel article: {item['title'][:60]}")
+            with get_conn() as conn:
+                cur = conn.execute("""
+                    INSERT INTO articles (guid, title, link, author, published_at, categories, description, full_content, og_image)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    item["guid"], item["title"], item["link"], item["author"],
+                    item["published_at"], item["categories"], item["description"],
+                    item.get("full_content", ""), item.get("og_image", ""),
+                ))
+                article_id = cur.lastrowid
+            print(f"[RSS] Nouvel article sauvé: {item['title'][:60]}")
 
             # Analyze with Claude
             try:
@@ -98,23 +105,28 @@ async def poll_rss(force: bool = False):
                 continue
 
             # Save report
-            conn.execute("""
-                INSERT INTO reports (article_id, score_before, score_after, report_html, report_json)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                article_id,
-                report_data.get("score_before", 0),
-                report_data.get("score_after", 0),
-                "",  # HTML generated on-the-fly via template
-                json.dumps(report_data, ensure_ascii=False),
-            ))
-            conn.commit()
+            with get_conn() as conn:
+                conn.execute("""
+                    INSERT INTO reports (article_id, score_before, score_after, report_html, report_json)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    article_id,
+                    report_data.get("score_before", 0),
+                    report_data.get("score_after", 0),
+                    "",
+                    json.dumps(report_data, ensure_ascii=False),
+                ))
 
             # Fetch the report id
-            report_row = conn.execute(
-                "SELECT id FROM reports WHERE article_id = ?", (article_id,)
-            ).fetchone()
+            with get_conn() as conn:
+                report_row = conn.execute(
+                    "SELECT id FROM reports WHERE article_id = ?", (article_id,)
+                ).fetchone()
             report_id = report_row["id"] if report_row else 0
+
+        except Exception as e:
+            print(f"[RSS] Erreur traitement article '{item.get('title','?')[:40]}': {e}")
+            continue
 
             # Discord notification
             report_url = f"{BASE_URL}/report/{report_id}"
