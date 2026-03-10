@@ -11,14 +11,33 @@ HEADERS = {
 }
 
 def fetch_rss_items() -> list[dict]:
-    """Fetch and parse RSS feed, return list of item dicts."""
-    try:
-        resp = httpx.get(RSS_URL, headers=HEADERS, follow_redirects=True, timeout=15)
-        resp.raise_for_status()
-        feed = feedparser.parse(resp.content)
-        print(f"[RSS] Feed fetché: HTTP {resp.status_code}, {len(feed.entries)} entrées")
-    except Exception as e:
-        print(f"[RSS] Erreur fetch feed: {e}")
+    """Fetch and parse RSS feed via proxy pour contourner les blocages IP."""
+    # Tentative directe d'abord
+    feed = None
+    for url_to_try in [
+        RSS_URL,
+        f"https://api.rss2json.com/v1/api.json?rss_url={RSS_URL}",  # fallback proxy
+    ]:
+        try:
+            if "rss2json" in url_to_try:
+                resp = httpx.get(url_to_try, timeout=15)
+                resp.raise_for_status()
+                data = resp.json()
+                if data.get("status") == "ok":
+                    print(f"[RSS] Feed via rss2json: {len(data.get('items', []))} entrées")
+                    return _parse_rss2json(data)
+            else:
+                resp = httpx.get(url_to_try, headers=HEADERS, follow_redirects=True, timeout=15)
+                resp.raise_for_status()
+                feed = feedparser.parse(resp.content)
+                if feed.entries:
+                    print(f"[RSS] Feed direct: {len(feed.entries)} entrées")
+                    break
+        except Exception as e:
+            print(f"[RSS] Échec {url_to_try[:50]}: {e}")
+            continue
+
+    if not feed or not feed.entries:
         return []
     items = []
     for entry in feed.entries:
@@ -31,6 +50,25 @@ def fetch_rss_items() -> list[dict]:
             "published_at": entry.get("published", ""),
             "categories": ", ".join(categories),
             "description": _strip_html(entry.get("summary", "")),
+        })
+    return items
+
+
+def _parse_rss2json(data: dict) -> list[dict]:
+    """Parse rss2json API response into item dicts."""
+    items = []
+    for item in data.get("items", []):
+        categories = item.get("categories", [])
+        if isinstance(categories, str):
+            categories = [categories]
+        items.append({
+            "guid": item.get("guid", item.get("link", "")),
+            "title": item.get("title", ""),
+            "link": item.get("link", ""),
+            "author": item.get("author", ""),
+            "published_at": item.get("pubDate", ""),
+            "categories": ", ".join(categories),
+            "description": _strip_html(item.get("description", "")),
         })
     return items
 
