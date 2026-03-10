@@ -3,6 +3,7 @@ uvicorn
 feedparser
 anthropic
 httpx
+curl_cffi
 beautifulsoup4
 apscheduler
 jinja2

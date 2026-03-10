@@ -1,5 +1,6 @@
 import httpx
 import feedparser
+from curl_cffi import requests as cffi_requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import os
@@ -11,33 +12,17 @@ HEADERS = {
 }
 
 def fetch_rss_items() -> list[dict]:
-    """Fetch and parse RSS feed via proxy pour contourner les blocages IP."""
-    # Tentative directe d'abord
-    feed = None
-    for url_to_try in [
-        RSS_URL,
-        f"https://api.rss2json.com/v1/api.json?rss_url={RSS_URL}",  # fallback proxy
-    ]:
-        try:
-            if "rss2json" in url_to_try:
-                resp = httpx.get(url_to_try, timeout=15)
-                resp.raise_for_status()
-                data = resp.json()
-                if data.get("status") == "ok":
-                    print(f"[RSS] Feed via rss2json: {len(data.get('items', []))} entrées")
-                    return _parse_rss2json(data)
-            else:
-                resp = httpx.get(url_to_try, headers=HEADERS, follow_redirects=True, timeout=15)
-                resp.raise_for_status()
-                feed = feedparser.parse(resp.content)
-                if feed.entries:
-                    print(f"[RSS] Feed direct: {len(feed.entries)} entrées")
-                    break
-        except Exception as e:
-            print(f"[RSS] Échec {url_to_try[:50]}: {e}")
-            continue
+    """Fetch et parse le flux RSS en imitant Chrome pour bypasser Cloudflare."""
+    try:
+        resp = cffi_requests.get(RSS_URL, impersonate="chrome110", timeout=15)
+        resp.raise_for_status()
+        feed = feedparser.parse(resp.content)
+        print(f"[RSS] Feed fetché: {len(feed.entries)} entrées")
+    except Exception as e:
+        print(f"[RSS] Erreur fetch feed: {e}")
+        return []
 
-    if not feed or not feed.entries:
+    if not feed.entries:
         return []
     items = []
     for entry in feed.entries:
@@ -76,7 +61,7 @@ def _parse_rss2json(data: dict) -> list[dict]:
 def fetch_article_content(url: str) -> dict:
     """Fetch full article page and extract content + og:image."""
     try:
-        resp = httpx.get(url, headers=HEADERS, follow_redirects=True, timeout=15)
+        resp = cffi_requests.get(url, impersonate="chrome110", timeout=15)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
