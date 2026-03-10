@@ -12,7 +12,14 @@ HEADERS = {
 
 def fetch_rss_items() -> list[dict]:
     """Fetch and parse RSS feed, return list of item dicts."""
-    feed = feedparser.parse(RSS_URL)
+    try:
+        resp = httpx.get(RSS_URL, headers=HEADERS, follow_redirects=True, timeout=15)
+        resp.raise_for_status()
+        feed = feedparser.parse(resp.content)
+        print(f"[RSS] Feed fetché: HTTP {resp.status_code}, {len(feed.entries)} entrées")
+    except Exception as e:
+        print(f"[RSS] Erreur fetch feed: {e}")
+        return []
     items = []
     for entry in feed.entries:
         categories = [t.term for t in entry.get("tags", [])]
