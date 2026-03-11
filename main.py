@@ -14,7 +14,7 @@ from fastapi.requests import Request
 
 from database import init_db, get_conn
 from fetcher import fetch_article_content
-from analyzer import analyze_article
+from analyzer import analyze_article, analyze_draft
 from discord_notify import send_report
 
 BASE_URL = os.getenv("BASE_URL", f"http://localhost:{os.getenv('PORT', '8000')}")
@@ -143,6 +143,55 @@ async def analyze_url(request: Request, url: str = Form(...), content: str = For
     report_data = await asyncio.to_thread(analyze_article, item)
 
     # Save report
+    with get_conn() as conn:
+        cur = conn.execute("""
+            INSERT INTO reports (article_id, score_before, score_after, report_html, report_json)
+            VALUES (?, ?, ?, ?, ?)
+        """, (article_id, report_data.get("score_before", 0), report_data.get("score_after", 0),
+              "", json.dumps(report_data, ensure_ascii=False)))
+        report_id = cur.lastrowid
+
+    return RedirectResponse(f"/report/{report_id}", status_code=303)
+
+
+@app.post("/analyze-draft")
+async def analyze_draft_route(
+    request: Request,
+    title: str = Form(...),
+    content: str = Form(...),
+    og_title: str = Form(default=""),
+    og_description: str = Form(default=""),
+    categories: str = Form(default=""),
+):
+    """Analyse d'un article brouillon (non encore publié)."""
+    import time
+    guid = f"draft-{int(time.time())}"
+
+    item = {
+        "guid": guid,
+        "title": title,
+        "link": "",
+        "author": "",
+        "published_at": "",
+        "categories": categories,
+        "description": og_description,
+        "full_content": content,
+        "og_title": og_title or title,
+        "og_description": og_description,
+        "og_image": "",
+        "robots_meta": "(brouillon non publié)",
+    }
+
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT OR IGNORE INTO articles (guid, title, link, author, published_at, categories, description, full_content, og_image)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (guid, title, "", "", "", categories, og_description, content, ""))
+        row = conn.execute("SELECT id FROM articles WHERE guid = ?", (guid,)).fetchone()
+        article_id = row["id"]
+
+    report_data = await asyncio.to_thread(analyze_draft, item)
+
     with get_conn() as conn:
         cur = conn.execute("""
             INSERT INTO reports (article_id, score_before, score_after, report_html, report_json)

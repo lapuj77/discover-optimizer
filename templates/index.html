@@ -29,29 +29,67 @@
 
   <main class="container">
 
-    <form class="analyze-form" method="POST" action="/analyze" id="analyze-form" onsubmit="startProgress(this)">
-      <div class="analyze-row">
-        <div class="input-wrap">
-          <span class="input-icon">🔗</span>
-          <input type="url" name="url" placeholder="Coller l'URL d'un article Journal du Geek…" required autocomplete="off" value="{{ prefill_url or '' }}">
-        </div>
-        <button type="submit" class="btn-analyze">Analyser →</button>
-      </div>
-      {% if error %}
-      <div class="form-error">⚠️ {{ error }}</div>
-      <textarea name="content" class="article-content-input" placeholder="Ouvre l'article → Ctrl+A → Ctrl+C → colle ici (Ctrl+V)…" rows="6"></textarea>
-      {% else %}
-      <textarea name="content" class="article-content-input" style="display:none"></textarea>
-      {% endif %}
-    </form>
+    <!-- Mode tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab mode-tab--active" onclick="switchTab('url', this)">🔗 URL existante</button>
+      <button class="mode-tab" onclick="switchTab('draft', this)">✍️ Article brouillon</button>
+    </div>
 
-    <!-- Progress bar (hidden until analysis starts) -->
-    <div class="progress-wrap" id="progress-wrap" style="display:none">
-      <div class="progress-stage" id="progress-stage">Connexion à l'article…</div>
-      <div class="progress-track">
-        <div class="progress-bar" id="progress-bar"></div>
+    <!-- Tab URL -->
+    <div id="tab-url">
+      <form class="analyze-form" method="POST" action="/analyze" id="analyze-form" onsubmit="startProgress(this, 'progress-wrap')">
+        <div class="analyze-row">
+          <div class="input-wrap">
+            <span class="input-icon">🔗</span>
+            <input type="url" name="url" placeholder="Coller l'URL d'un article Journal du Geek…" required autocomplete="off" value="{{ prefill_url or '' }}">
+          </div>
+          <button type="submit" class="btn-analyze">Analyser →</button>
+        </div>
+        {% if error %}
+        <div class="form-error">⚠️ {{ error }}</div>
+        <textarea name="content" class="article-content-input" placeholder="Ouvre l'article → Ctrl+A → Ctrl+C → colle ici (Ctrl+V)…" rows="6"></textarea>
+        {% else %}
+        <textarea name="content" class="article-content-input" style="display:none"></textarea>
+        {% endif %}
+      </form>
+      <div class="progress-wrap" id="progress-wrap" style="display:none">
+        <div class="progress-stage" id="progress-stage">Connexion à l'article…</div>
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="progress-pct" id="progress-pct">0%</div>
       </div>
-      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+
+    <!-- Tab Brouillon -->
+    <div id="tab-draft" style="display:none">
+      <form class="analyze-form draft-form" method="POST" action="/analyze-draft" id="draft-form" onsubmit="startProgress(this, 'draft-progress-wrap')">
+        <div class="draft-row-title">
+          <div class="input-wrap">
+            <span class="input-icon">📝</span>
+            <input type="text" name="title" placeholder="Titre de l'article (H1)…" required autocomplete="off">
+          </div>
+          <button type="submit" class="btn-analyze">Analyser →</button>
+        </div>
+        <textarea name="content" class="article-content-input draft-content" placeholder="Colle le contenu complet de ton article ici (texte brut, HTML, WordPress…)" rows="12" required></textarea>
+        <details class="draft-optionals">
+          <summary>Métadonnées optionnelles</summary>
+          <div class="draft-optionals-inner">
+            <label>og:title envisagé
+              <input type="text" name="og_title" placeholder="Ton og:title actuel si tu en as un…">
+            </label>
+            <label>og:description envisagée
+              <input type="text" name="og_description" placeholder="Ton og:description actuelle si tu en as une…">
+            </label>
+            <label>Catégories / Tags
+              <input type="text" name="categories" placeholder="ex: IA, OpenAI, GPT-5…">
+            </label>
+          </div>
+        </details>
+      </form>
+      <div class="progress-wrap" id="draft-progress-wrap" style="display:none">
+        <div class="progress-stage" id="draft-progress-stage">Analyse du contenu…</div>
+        <div class="progress-track"><div class="progress-bar" id="draft-progress-bar"></div></div>
+        <div class="progress-pct" id="draft-progress-pct">0%</div>
+      </div>
     </div>
 
     {% if not articles %}
@@ -112,33 +150,52 @@
       document.getElementById('stat-gain').textContent = '+' + g + ' pts';
     });
 
-    const STAGES = [
-      { pct: 8,  label: 'Connexion à l\'article…' },
-      { pct: 28, label: 'Récupération du contenu via ScraperAPI…' },
-      { pct: 52, label: 'Envoi à Claude pour analyse Discover…' },
-      { pct: 74, label: 'Analyse des signaux E-E-A-T et pCTR…' },
-      { pct: 88, label: 'Génération du rapport…' },
-      { pct: 96, label: 'Finalisation…' },
+    function switchTab(tab, btn) {
+      document.getElementById('tab-url').style.display   = tab === 'url'   ? '' : 'none';
+      document.getElementById('tab-draft').style.display = tab === 'draft' ? '' : 'none';
+      document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('mode-tab--active'));
+      btn.classList.add('mode-tab--active');
+    }
+
+    const URL_STAGES = [
+      { pct: 8,  label: 'Connexion à l\'article…',                 t: 0 },
+      { pct: 28, label: 'Récupération du contenu via ScraperAPI…',  t: 2000 },
+      { pct: 52, label: 'Envoi à Claude pour analyse Discover…',    t: 8000 },
+      { pct: 74, label: 'Analyse des signaux E-E-A-T et pCTR…',     t: 14000 },
+      { pct: 88, label: 'Génération du rapport…',                   t: 22000 },
+      { pct: 96, label: 'Finalisation…',                            t: 28000 },
     ];
 
-    function startProgress(form) {
+    const DRAFT_STAGES = [
+      { pct: 10, label: 'Lecture du contenu…',                      t: 0 },
+      { pct: 35, label: 'Envoi à Claude pour analyse Discover…',    t: 1000 },
+      { pct: 58, label: 'Analyse des signaux E-E-A-T et pCTR…',     t: 6000 },
+      { pct: 78, label: 'Génération des recommandations og:…',      t: 12000 },
+      { pct: 92, label: 'Finalisation du rapport…',                 t: 18000 },
+      { pct: 97, label: 'Presque prêt…',                            t: 22000 },
+    ];
+
+    function startProgress(form, progressId) {
       form.querySelector('.btn-analyze').disabled = true;
       form.querySelector('.btn-analyze').textContent = 'Analyse en cours…';
-      document.getElementById('progress-wrap').style.display = 'block';
 
-      const bar  = document.getElementById('progress-bar');
-      const pct  = document.getElementById('progress-pct');
-      const lbl  = document.getElementById('progress-stage');
+      const wrap = document.getElementById(progressId);
+      wrap.style.display = 'block';
 
-      // Realistic timings: fetch ~8s, Claude ~20s, total ~30s
-      const timings = [0, 2000, 8000, 14000, 22000, 28000];
+      const isDraft = progressId === 'draft-progress-wrap';
+      const stages  = isDraft ? DRAFT_STAGES : URL_STAGES;
+      const suffix  = isDraft ? 'draft-progress' : 'progress';
 
-      STAGES.forEach((s, i) => {
+      const bar = document.getElementById(suffix + '-bar');
+      const pct = document.getElementById(suffix + '-pct');
+      const lbl = document.getElementById(suffix + '-stage');
+
+      stages.forEach(s => {
         setTimeout(() => {
-          bar.style.width = s.pct + '%';
-          pct.textContent = s.pct + '%';
-          lbl.textContent = s.label;
-        }, timings[i]);
+          bar.style.width  = s.pct + '%';
+          pct.textContent  = s.pct + '%';
+          lbl.textContent  = s.label;
+        }, s.t);
       });
     }
   </script>

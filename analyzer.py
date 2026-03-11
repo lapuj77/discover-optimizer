@@ -87,6 +87,107 @@ ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rap
 }}"""
 
 
+DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour optimiser sa distribution dans Google Discover.
+
+## DONNÉES DU BROUILLON
+
+**Titre H1 rédigé :** {title}
+**og:title envisagé :** {og_title}
+**og:description envisagée :** {og_description}
+**Catégories/Tags :** {categories}
+**Contenu de l'article :**
+{full_content}
+
+---
+
+## CONNAISSANCES DISCOVER À APPLIQUER
+
+**L'article n'est pas encore publié. Génère des recommandations "de création" :**
+1. Image à créer : 1200px+ 16:9 obligatoire, + meta `max-image-preview:large` dans le head → jusqu'à +79% CTR. Décris précisément l'image idéale pour ce sujet.
+2. `og:title` à rédiger : 50-80 caractères, entité nommée + enjeu clair, angle émotionnel (surprise, curiosité, polémique)
+3. `og:description` à rédiger : accroche complémentaire, renforce la curiosité sans spoiler, 120-160 caractères
+4. Entités Knowledge Graph à nommer dans le contenu (personnes, marques, produits, lieux)
+5. Angle : est-ce que le sujet est timely (trend actuel) ou evergreen ? Comment renforcer l'angle ?
+6. E-E-A-T : recommandations pour renforcer l'expertise visible dans le texte
+7. Structure du contenu : intro, sous-titres, longueur idéale pour Discover
+8. Éviter le clickbait pur (pénalise le pCTR après le 1er cycle)
+
+---
+
+## FORMAT DE RÉPONSE (JSON strict)
+
+{{
+  "score_before": <entier 0-100, score Discover estimé du brouillon tel quel>,
+  "score_after": <entier 0-100, score estimé après tes optimisations>,
+  "verdict": "<phrase 1 ligne résumant le potentiel Discover de cet article>",
+  "priority_fixes": [
+    {{
+      "priority": "CRITIQUE|IMPORTANT|BONUS",
+      "category": "Image|og:title|og:description|Contenu|Entités|Angle|Technique|Structure",
+      "problem": "<ce qui manque ou est sous-optimal dans le brouillon>",
+      "action": "<action concrète et précise à réaliser avant publication>",
+      "example": "<exemple concret : titre suggéré, description, type d'image, etc.>"
+    }}
+  ],
+  "og_title_rewrites": [
+    "<proposition 1 de og:title optimisé>",
+    "<proposition 2 de og:title optimisé>",
+    "<proposition 3 de og:title optimisé>"
+  ],
+  "og_description_rewrite": "<og:description optimisée prête à copier>",
+  "image_status": {{
+    "has_image": false,
+    "max_image_preview_detected": false,
+    "estimated_width_ok": false,
+    "recommendation": "<description précise de l'image idéale à créer pour ce sujet : sujet, cadrage, style, format>"
+  }},
+  "entity_analysis": {{
+    "entities_found": ["<entité déjà présente dans le texte>"],
+    "entities_missing": ["<entité à ajouter dans le contenu pour renforcer l'ancrage KG>"],
+    "knowledge_graph_strength": "<fort|moyen|faible>"
+  }},
+  "trend_alignment": {{
+    "is_timely": <true|false>,
+    "trend_context": "<explication du contexte de tendance et fenêtre de publication idéale>",
+    "freshness_window": "<durée de vie estimée dans Discover une fois publié>"
+  }},
+  "quick_wins": [
+    "<action rapide 1 à faire avant de publier (< 5 min)>",
+    "<action rapide 2>",
+    "<action rapide 3>"
+  ]
+}}"""
+
+
+def analyze_draft(article_data: dict) -> dict:
+    """Send draft article to Claude and get pre-publication Discover optimization report."""
+    prompt = DRAFT_PROMPT.format(
+        title=article_data.get("title", ""),
+        og_title=article_data.get("og_title", "(non défini)"),
+        og_description=article_data.get("og_description", "(non définie)"),
+        categories=article_data.get("categories", ""),
+        full_content=article_data.get("full_content", "")[:8000],
+    )
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=4096,
+        messages=[{"role": "user", "content": prompt}],
+        system=SYSTEM_PROMPT,
+    )
+
+    raw = message.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    if raw.endswith("```"):
+        raw = raw[:-3].strip()
+
+    return json.loads(raw)
+
+
 def analyze_article(article_data: dict) -> dict:
     """Send article to Claude and get Discover optimization report."""
     prompt = ANALYSIS_PROMPT.format(
