@@ -147,6 +147,15 @@ a:hover { text-decoration: underline; }
 .analyze-form button:hover { opacity: .85; }
 .analyze-form button:disabled { opacity: .5; cursor: not-allowed; }
 
+.form-error {
+  background: rgba(255,77,109,.1);
+  border: 1px solid rgba(255,77,109,.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: .85rem;
+  color: var(--red);
+}
+
 .article-content-input {
   background: var(--bg2);
   border: 1px solid var(--border);

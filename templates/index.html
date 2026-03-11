@@ -26,11 +26,14 @@
   <main class="container">
     <form class="analyze-form" method="POST" action="/analyze" onsubmit="this.querySelector('.btn-analyze').textContent='⏳ Analyse en cours…'; this.querySelector('.btn-analyze').disabled=true;">
       <div class="analyze-row">
-        <input type="url" name="url" placeholder="URL de l'article…" required autocomplete="off">
+        <input type="url" name="url" placeholder="URL de l'article…" required autocomplete="off" value="{{ prefill_url or '' }}">
         <button type="button" class="btn-toggle-content" onclick="toggleContent(this)">+ Coller le contenu</button>
         <button type="submit" class="btn-analyze">Analyser →</button>
       </div>
-      <textarea name="content" class="article-content-input" style="display:none" placeholder="Coller ici le texte de l'article (Ctrl+A sur la page, Ctrl+C, Ctrl+V ici)…" rows="8"></textarea>
+      {% if error %}
+      <div class="form-error">⚠️ {{ error }}</div>
+      {% endif %}
+      <textarea name="content" class="article-content-input" style="{{ 'display:block' if error else 'display:none' }}" placeholder="Ouvre l'article dans ton navigateur → Ctrl+A → Ctrl+C → colle ici (Ctrl+V)…" rows="8"></textarea>
     </form>
     <script>
       function toggleContent(btn) {

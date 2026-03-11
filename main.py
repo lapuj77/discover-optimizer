@@ -208,12 +208,18 @@ async def analyze_url(url: str = Form(...), content: str = Form(default="")):
         if existing:
             return RedirectResponse(f"/report/{existing['id']}", status_code=303)
 
-    # Tente le fetch automatique, utilise le contenu collé en fallback
+    if not content.strip():
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "articles": [],
+            "error": "Colle le contenu de l'article dans le champ texte (ouvre l'article, Ctrl+A, Ctrl+C, colle ici).",
+            "prefill_url": url,
+        }, status_code=422)
+
+    # Tente le fetch pour récupérer og:image / og:title, ignore les erreurs
     page_data = fetch_article_content(url)
-    if not page_data.get("full_content") and content.strip():
-        page_data["full_content"] = content.strip()
     if not page_data.get("full_content"):
-        raise HTTPException(status_code=422, detail="Impossible de récupérer le contenu. Colle le texte de l'article via le bouton '+ Coller le contenu'.")
+        page_data["full_content"] = content.strip()
 
     item = {
         "guid": url,
