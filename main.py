@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Form
+from fastapi import FastAPI, HTTPException, Form
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -153,8 +153,8 @@ async def analyze_url(request: Request, url: str = Form(...), content: str = For
 
 
 @app.post("/reanalyze/{report_id}")
-async def reanalyze(report_id: int, background_tasks: BackgroundTasks):
-    """Refetch l'article et met à jour le rapport existant."""
+async def reanalyze(report_id: int):
+    """Refetch l'article et met à jour le rapport existant (synchrone)."""
     with get_conn() as conn:
         row = conn.execute(
             "SELECT a.id, a.link FROM reports r JOIN articles a ON a.id = r.article_id WHERE r.id = ?",
@@ -163,27 +163,18 @@ async def reanalyze(report_id: int, background_tasks: BackgroundTasks):
     if not row:
         raise HTTPException(status_code=404, detail="Rapport introuvable")
 
-    background_tasks.add_task(_do_reanalyze, report_id, row["id"], row["link"])
-    return RedirectResponse(f"/report/{report_id}?reanalyzing=1", status_code=303)
+    article_id, url = row["id"], row["link"]
 
-
-async def _do_reanalyze(report_id: int, article_id: int, url: str):
-    """Tâche de fond : refetch + réanalyse + update du rapport."""
     page_data = await asyncio.to_thread(fetch_article_content, url)
     if not page_data.get("full_content"):
-        print(f"[Reanalyze] Impossible de fetcher {url}")
-        return
+        raise HTTPException(status_code=422, detail="Impossible de récupérer le contenu de l'article.")
 
     with get_conn() as conn:
         article = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
     item = dict(article)
     item.update(page_data)
 
-    try:
-        report_data = await asyncio.to_thread(analyze_article, item)
-    except Exception as e:
-        print(f"[Reanalyze] Erreur Claude: {e}")
-        return
+    report_data = await asyncio.to_thread(analyze_article, item)
 
     with get_conn() as conn:
         conn.execute("""
@@ -195,7 +186,11 @@ async def _do_reanalyze(report_id: int, article_id: int, url: str):
             json.dumps(report_data, ensure_ascii=False),
             report_id,
         ))
+        conn.execute("UPDATE articles SET full_content=?, og_image=? WHERE id=?",
+                     (page_data.get("full_content", ""), page_data.get("og_image", ""), article_id))
+
     print(f"[Reanalyze] Rapport {report_id} mis à jour")
+    return RedirectResponse(f"/report/{report_id}", status_code=303)
 
     # Met à jour le contenu de l'article en DB
     with get_conn() as conn:

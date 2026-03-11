@@ -197,11 +197,10 @@
         <span>Relance l'analyse pour voir l'impact des modifications sur le score Discover.</span>
       </div>
       <form method="POST" action="/reanalyze/{{ article.report_id }}">
-        {% if request.query_params.get('reanalyzing') %}
-        <button type="button" class="btn-reanalyze-main" disabled>⏳ Mise à jour en cours…</button>
-        {% else %}
-        <button type="submit" class="btn-reanalyze-main" onclick="this.textContent='⏳ Analyse en cours…';this.disabled=true">↻ Re-analyser l'article</button>
-        {% endif %}
+        <button type="submit" class="btn-reanalyze-main"
+          onclick="this.innerHTML='<span class=spinner></span> Analyse en cours…';this.disabled=true">
+          ↻ Re-analyser l'article
+        </button>
       </form>
     </div>
 
