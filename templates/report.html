@@ -28,6 +28,13 @@
           <span class="date">{{ article.published_at[:16] if article.published_at else '' }}</span>
           <span class="sep">·</span>
           <a href="{{ article.link }}" target="_blank" class="article-link">Voir l'article ↗</a>
+          <span class="sep">·</span>
+          <form method="POST" action="/reanalyze/{{ article.report_id }}" style="display:inline">
+            <button type="submit" class="btn-reanalyze" onclick="this.textContent='⏳ En cours…';this.disabled=true">↻ Re-analyser</button>
+          </form>
+          {% if request.query_params.get('reanalyzing') %}
+          <span class="reanalyzing-badge">⏳ Mise à jour en cours…</span>
+          {% endif %}
         </div>
         <h1 class="report-title">{{ article.title }}</h1>
         {% if article.categories %}

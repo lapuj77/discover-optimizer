@@ -259,6 +259,58 @@ async def analyze_url(request: Request, url: str = Form(...), content: str = For
     return RedirectResponse(f"/report/{report_id}", status_code=303)
 
 
+@app.post("/reanalyze/{report_id}")
+async def reanalyze(report_id: int, background_tasks: BackgroundTasks):
+    """Refetch l'article et met à jour le rapport existant."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT a.id, a.link FROM reports r JOIN articles a ON a.id = r.article_id WHERE r.id = ?",
+            (report_id,)
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Rapport introuvable")
+
+    background_tasks.add_task(_do_reanalyze, report_id, row["id"], row["link"])
+    return RedirectResponse(f"/report/{report_id}?reanalyzing=1", status_code=303)
+
+
+async def _do_reanalyze(report_id: int, article_id: int, url: str):
+    """Tâche de fond : refetch + réanalyse + update du rapport."""
+    page_data = await asyncio.to_thread(fetch_article_content, url)
+    if not page_data.get("full_content"):
+        print(f"[Reanalyze] Impossible de fetcher {url}")
+        return
+
+    with get_conn() as conn:
+        article = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+    item = dict(article)
+    item.update(page_data)
+
+    try:
+        report_data = await asyncio.to_thread(analyze_article, item)
+    except Exception as e:
+        print(f"[Reanalyze] Erreur Claude: {e}")
+        return
+
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE reports SET score_before=?, score_after=?, report_json=?, created_at=CURRENT_TIMESTAMP
+            WHERE id=?
+        """, (
+            report_data.get("score_before", 0),
+            report_data.get("score_after", 0),
+            json.dumps(report_data, ensure_ascii=False),
+            report_id,
+        ))
+    print(f"[Reanalyze] Rapport {report_id} mis à jour")
+
+    # Met à jour le contenu de l'article en DB
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE articles SET full_content=?, og_image=? WHERE id=?
+        """, (page_data.get("full_content", ""), page_data.get("og_image", ""), article_id))
+
+
 @app.post("/trigger-poll")
 async def trigger_poll(background_tasks: BackgroundTasks):
     """Manually trigger an RSS poll."""
