@@ -208,18 +208,20 @@ async def analyze_url(request: Request, url: str = Form(...), content: str = For
         if existing:
             return RedirectResponse(f"/report/{existing['id']}", status_code=303)
 
-    if not content.strip():
+    # Fetch complet via ScraperAPI (og:image, og:title, contenu, meta robots...)
+    page_data = await asyncio.to_thread(fetch_article_content, url)
+
+    # Fallback : contenu collé manuellement si le fetch a échoué
+    if not page_data.get("full_content") and content.strip():
+        page_data["full_content"] = content.strip()
+
+    if not page_data.get("full_content"):
         return templates.TemplateResponse("index.html", {
             "request": request,
             "articles": [],
-            "error": "Colle le contenu de l'article dans le champ texte (ouvre l'article, Ctrl+A, Ctrl+C, colle ici).",
+            "error": "Impossible de récupérer le contenu. Utilise le bouton '+ Coller le contenu' comme solution de secours.",
             "prefill_url": url,
         }, status_code=422)
-
-    # Tente le fetch pour récupérer og:image / og:title, ignore les erreurs
-    page_data = await asyncio.to_thread(fetch_article_content, url)
-    if not page_data.get("full_content"):
-        page_data["full_content"] = content.strip()
 
     item = {
         "guid": url,
