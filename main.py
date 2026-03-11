@@ -2,8 +2,6 @@ import os
 import json
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import datetime
-from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,20 +11,13 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from database import init_db, get_conn
-from fetcher import fetch_rss_items, fetch_article_content
+from fetcher import fetch_article_content
 from analyzer import analyze_article
 from discord_notify import send_report
 
-POLL_INTERVAL = 30
 BASE_URL = os.getenv("BASE_URL", f"http://localhost:{os.getenv('PORT', '8000')}")
-PARIS_TZ = ZoneInfo("Europe/Paris")
-QUIET_START = 22  # heure de début de la plage silencieuse
-QUIET_END = 7     # heure de fin (exclusif)
-
-scheduler = AsyncIOScheduler()
 
 
 # ─── Startup / Shutdown ──────────────────────────────────────────────────────
@@ -34,110 +25,12 @@ scheduler = AsyncIOScheduler()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    scheduler.add_job(poll_rss, "interval", minutes=POLL_INTERVAL, id="rss_poll")
-    scheduler.start()
-    print(f"[Scheduler] Polling RSS toutes les {POLL_INTERVAL} min (silence 22h-7h heure de Paris)")
-    # Run once immediately at startup (respecte aussi la plage silencieuse)
-    asyncio.create_task(poll_rss())
     yield
-    scheduler.shutdown()
 
 
 app = FastAPI(title="Discover Optimizer", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
-
-# ─── RSS Polling & Processing ─────────────────────────────────────────────────
-
-def _is_quiet_hours() -> bool:
-    """Retourne True si on est dans la plage silencieuse (22h-7h heure de Paris)."""
-    now = datetime.now(PARIS_TZ)
-    h = now.hour
-    return h >= QUIET_START or h < QUIET_END
-
-
-async def poll_rss(force: bool = False):
-    if not force and _is_quiet_hours():
-        now = datetime.now(PARIS_TZ)
-        print(f"[RSS] Plage silencieuse ({now.strftime('%H:%M')} heure de Paris) — scan ignoré")
-        return
-    print("[RSS] Polling en cours...")
-    try:
-        items = await asyncio.to_thread(fetch_rss_items)
-    except Exception as e:
-        print(f"[RSS] Erreur fetch RSS: {e}")
-        return
-    print(f"[RSS] {len(items)} articles dans le feed")
-    new_count = 0
-
-    for item in items:
-        try:
-            with get_conn() as conn:
-                exists = conn.execute(
-                    "SELECT id FROM articles WHERE guid = ?", (item["guid"],)
-                ).fetchone()
-                if exists:
-                    continue
-
-            # Fetch full content (hors transaction, dans un thread pour ne pas bloquer asyncio)
-            page_data = await asyncio.to_thread(fetch_article_content, item["link"])
-            item.update(page_data)
-
-            # Save article
-            with get_conn() as conn:
-                cur = conn.execute("""
-                    INSERT INTO articles (guid, title, link, author, published_at, categories, description, full_content, og_image)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    item["guid"], item["title"], item["link"], item["author"],
-                    item["published_at"], item["categories"], item["description"],
-                    item.get("full_content", ""), item.get("og_image", ""),
-                ))
-                article_id = cur.lastrowid
-            print(f"[RSS] Nouvel article sauvé: {item['title'][:60]}")
-
-            # Analyze with Claude (dans un thread)
-            try:
-                report_data = await asyncio.to_thread(analyze_article, item)
-            except Exception as e:
-                print(f"[Analyzer] Erreur: {e}")
-                continue
-
-            # Save report
-            with get_conn() as conn:
-                conn.execute("""
-                    INSERT INTO reports (article_id, score_before, score_after, report_html, report_json)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (
-                    article_id,
-                    report_data.get("score_before", 0),
-                    report_data.get("score_after", 0),
-                    "",
-                    json.dumps(report_data, ensure_ascii=False),
-                ))
-
-            # Fetch the report id
-            with get_conn() as conn:
-                report_row = conn.execute(
-                    "SELECT id FROM reports WHERE article_id = ?", (article_id,)
-                ).fetchone()
-            report_id = report_row["id"] if report_row else 0
-
-        except Exception as e:
-            print(f"[RSS] Erreur traitement article '{item.get('title','?')[:40]}': {e}")
-            continue
-
-            # Discord notification
-            report_url = f"{BASE_URL}/report/{report_id}"
-            try:
-                send_report(item, report_data, report_url)
-            except Exception as e:
-                print(f"[Discord] Erreur: {e}")
-
-            new_count += 1
-
-    print(f"[RSS] {new_count} nouvel(s) article(s) traité(s)")
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -310,12 +203,6 @@ async def _do_reanalyze(report_id: int, article_id: int, url: str):
             UPDATE articles SET full_content=?, og_image=? WHERE id=?
         """, (page_data.get("full_content", ""), page_data.get("og_image", ""), article_id))
 
-
-@app.post("/trigger-poll")
-async def trigger_poll(background_tasks: BackgroundTasks):
-    """Manually trigger an RSS poll."""
-    background_tasks.add_task(poll_rss, True)
-    return {"status": "poll lancé"}
 
 
 @app.get("/api/stats")
