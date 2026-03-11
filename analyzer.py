@@ -57,12 +57,29 @@ ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rap
       "example": "<exemple concret : nouveau titre, nouvelle description, etc. si pertinent>"
     }}
   ],
+  "meta_title_rewrites": [
+    "<proposition 1 de balise <title> SEO (55-65 car., mot-clé principal en tête)>",
+    "<proposition 2 de balise <title>>",
+    "<proposition 3 de balise <title>>"
+  ],
   "og_title_rewrites": [
-    "<proposition 1 de nouveau og:title>",
+    "<proposition 1 de nouveau og:title (50-80 car., émotionnel, entité nommée)>",
     "<proposition 2 de nouveau og:title>",
     "<proposition 3 de nouveau og:title>"
   ],
-  "og_description_rewrite": "<nouvelle og:description optimisée>",
+  "og_description_rewrite": "<nouvelle og:description optimisée (120-160 car.)>",
+  "image_seo": {{
+    "alt_texts": [
+      "<alt text 1 : descriptif, mot-clé principal, sans 'image de'>",
+      "<alt text 2>",
+      "<alt text 3>"
+    ],
+    "filenames": [
+      "<nom-de-fichier-seo-1.jpg (tirets, mots-clés, sans accents)>",
+      "<nom-de-fichier-seo-2.jpg>",
+      "<nom-de-fichier-seo-3.jpg>"
+    ]
+  }},
   "image_status": {{
     "has_image": <true|false>,
     "max_image_preview_detected": <true|false>,
@@ -129,12 +146,29 @@ DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour
       "example": "<exemple concret : titre suggéré, description, type d'image, etc.>"
     }}
   ],
+  "meta_title_rewrites": [
+    "<proposition 1 de balise <title> SEO (55-65 car., mot-clé principal en tête)>",
+    "<proposition 2 de balise <title>>",
+    "<proposition 3 de balise <title>>"
+  ],
   "og_title_rewrites": [
-    "<proposition 1 de og:title optimisé>",
+    "<proposition 1 de og:title optimisé (50-80 car., émotionnel, entité nommée)>",
     "<proposition 2 de og:title optimisé>",
     "<proposition 3 de og:title optimisé>"
   ],
-  "og_description_rewrite": "<og:description optimisée prête à copier>",
+  "og_description_rewrite": "<og:description optimisée prête à copier (120-160 car.)>",
+  "image_seo": {{
+    "alt_texts": [
+      "<alt text 1 : descriptif, mot-clé principal, sans 'image de'>",
+      "<alt text 2>",
+      "<alt text 3>"
+    ],
+    "filenames": [
+      "<nom-de-fichier-seo-1.jpg (tirets, mots-clés, sans accents)>",
+      "<nom-de-fichier-seo-2.jpg>",
+      "<nom-de-fichier-seo-3.jpg>"
+    ]
+  }},
   "image_status": {{
     "has_image": false,
     "max_image_preview_detected": false,

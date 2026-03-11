@@ -102,10 +102,26 @@
     </div>
     {% endif %}
 
+    <!-- Meta title -->
+    {% if report.meta_title_rewrites %}
+    <div class="report-section">
+      <h2 class="section-title">🏷️ Propositions de &lt;title&gt; <span class="section-sub">balise titre SEO · 55-65 car.</span></h2>
+      <div class="title-rewrites">
+        {% for t in report.meta_title_rewrites %}
+        <div class="title-rewrite" onclick="copyText(this, '{{ t | replace("'", "\\'") }}')">
+          <span class="title-rewrite-text">{{ t }}</span>
+          <span class="title-len {% if t|length > 65 %}len--bad{% elif t|length >= 45 %}len--good{% else %}len--ok{% endif %}">{{ t|length }} car.</span>
+          <span class="copy-hint">Copier</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- og:title Rewrites -->
     {% if report.og_title_rewrites %}
     <div class="report-section">
-      <h2 class="section-title">✍️ Propositions de og:title</h2>
+      <h2 class="section-title">✍️ Propositions de og:title <span class="section-sub">Discover · 50-80 car.</span></h2>
       <div class="title-rewrites">
         {% for t in report.og_title_rewrites %}
         <div class="title-rewrite" onclick="copyText(this, '{{ t | replace("'", "\\'") }}')">
@@ -121,10 +137,55 @@
     <!-- og:description -->
     {% if report.og_description_rewrite %}
     <div class="report-section">
-      <h2 class="section-title">📝 og:description optimisée</h2>
+      <h2 class="section-title">📝 og:description optimisée <span class="section-sub">120-160 car.</span></h2>
       <div class="description-rewrite" onclick="copyText(this, '{{ report.og_description_rewrite | replace("'", "\\'") }}')">
         <p>{{ report.og_description_rewrite }}</p>
+        <span class="title-len {% if report.og_description_rewrite|length > 160 %}len--bad{% elif report.og_description_rewrite|length >= 120 %}len--good{% else %}len--ok{% endif %}">{{ report.og_description_rewrite|length }} car.</span>
         <span class="copy-hint">Copier</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Image SEO -->
+    {% if report.image_seo %}
+    <div class="report-section">
+      <h2 class="section-title">🖼️ SEO image — alt text &amp; nom de fichier</h2>
+      <div class="two-col" style="gap:16px">
+        <div>
+          <div class="meta-label">Alt text</div>
+          {% for alt in report.image_seo.alt_texts %}
+          <div class="title-rewrite" onclick="copyText(this, '{{ alt | replace("'", "\\'") }}')">
+            <span class="title-rewrite-text">{{ alt }}</span>
+            <span class="copy-hint">Copier</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div>
+          <div class="meta-label">Nom de fichier</div>
+          {% for fn in report.image_seo.filenames %}
+          <div class="title-rewrite" onclick="copyText(this, '{{ fn | replace("'", "\\'") }}')">
+            <span class="title-rewrite-text"><code>{{ fn }}</code></span>
+            <span class="copy-hint">Copier</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Bloc meta complet -->
+    {% if report.meta_title_rewrites or report.og_title_rewrites %}
+    <div class="report-section">
+      <h2 class="section-title">📋 Bloc meta complet <span class="section-sub">prêt à coller dans le &lt;head&gt;</span></h2>
+      <div class="meta-bloc-wrap">
+        <pre class="meta-bloc" id="meta-bloc">{{ '<title>' }}{{ report.meta_title_rewrites[0] if report.meta_title_rewrites else article.title }}{{ '</title>' }}
+{{ '<meta name="description" content="' }}{{ report.og_description_rewrite or '' }}{{ '" />' }}
+{{ '<meta property="og:title" content="' }}{{ report.og_title_rewrites[0] if report.og_title_rewrites else article.title }}{{ '" />' }}
+{{ '<meta property="og:description" content="' }}{{ report.og_description_rewrite or '' }}{{ '" />' }}
+{{ '<meta property="og:image" content="' }}{{ article.og_image or 'URL_IMAGE_1200x630' }}{{ '" />' }}
+{% if report.image_seo and report.image_seo.alt_texts %}{{ '<meta property="og:image:alt" content="' }}{{ report.image_seo.alt_texts[0] }}{{ '" />' }}
+{% endif %}{{ '<meta name="robots" content="max-image-preview:large" />' }}</pre>
+        <button class="btn-copy-bloc" onclick="copyBloc()">📋 Tout copier</button>
       </div>
     </div>
     {% endif %}
@@ -221,6 +282,16 @@
         const orig = hint.textContent;
         hint.textContent = '✅ Copié !';
         setTimeout(() => hint.textContent = orig, 1500);
+      });
+    }
+
+    function copyBloc() {
+      const text = document.getElementById('meta-bloc').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.btn-copy-bloc');
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copié !';
+        setTimeout(() => btn.textContent = orig, 2000);
       });
     }
 
