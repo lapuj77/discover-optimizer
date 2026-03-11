@@ -24,10 +24,22 @@
   </header>
 
   <main class="container">
-    <form class="analyze-form" method="POST" action="/analyze" onsubmit="this.querySelector('button').textContent='⏳ Analyse en cours…'; this.querySelector('button').disabled=true;">
-      <input type="url" name="url" placeholder="Coller l'URL d'un article Journal du Geek…" required autocomplete="off">
-      <button type="submit">Analyser →</button>
+    <form class="analyze-form" method="POST" action="/analyze" onsubmit="this.querySelector('.btn-analyze').textContent='⏳ Analyse en cours…'; this.querySelector('.btn-analyze').disabled=true;">
+      <div class="analyze-row">
+        <input type="url" name="url" placeholder="URL de l'article…" required autocomplete="off">
+        <button type="button" class="btn-toggle-content" onclick="toggleContent(this)">+ Coller le contenu</button>
+        <button type="submit" class="btn-analyze">Analyser →</button>
+      </div>
+      <textarea name="content" class="article-content-input" style="display:none" placeholder="Coller ici le texte de l'article (Ctrl+A sur la page, Ctrl+C, Ctrl+V ici)…" rows="8"></textarea>
     </form>
+    <script>
+      function toggleContent(btn) {
+        const ta = btn.closest('form').querySelector('textarea');
+        const show = ta.style.display === 'none';
+        ta.style.display = show ? 'block' : 'none';
+        btn.textContent = show ? '- Masquer' : '+ Coller le contenu';
+      }
+    </script>
 
     {% if not articles %}
     <div class="empty-state">

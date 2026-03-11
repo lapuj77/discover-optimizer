@@ -200,7 +200,7 @@ async def report_view(request: Request, report_id: int):
 
 
 @app.post("/analyze")
-async def analyze_url(url: str = Form(...)):
+async def analyze_url(url: str = Form(...), content: str = Form(default="")):
     """Analyse manuelle d'une URL."""
     # Vérifie si déjà analysé
     with get_conn() as conn:
@@ -208,10 +208,12 @@ async def analyze_url(url: str = Form(...)):
         if existing:
             return RedirectResponse(f"/report/{existing['id']}", status_code=303)
 
-    # Fetch contenu
+    # Tente le fetch automatique, utilise le contenu collé en fallback
     page_data = fetch_article_content(url)
+    if not page_data.get("full_content") and content.strip():
+        page_data["full_content"] = content.strip()
     if not page_data.get("full_content"):
-        raise HTTPException(status_code=422, detail="Impossible de récupérer le contenu de cette URL.")
+        raise HTTPException(status_code=422, detail="Impossible de récupérer le contenu. Colle le texte de l'article via le bouton '+ Coller le contenu'.")
 
     item = {
         "guid": url,
