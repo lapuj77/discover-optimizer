@@ -6,15 +6,18 @@ from datetime import datetime
 import os
 
 RSS_URL = os.getenv("RSS_URL", "https://www.journaldugeek.com/feed/")
+SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY", "")
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
-}
+def _scraper_url(target: str) -> str:
+    """Wrappe une URL via ScraperAPI pour bypasser Cloudflare."""
+    if SCRAPER_API_KEY:
+        return f"https://api.scraperapi.com/?api_key={SCRAPER_API_KEY}&url={target}"
+    return target
 
 def fetch_rss_items() -> list[dict]:
-    """Fetch et parse le flux RSS en imitant Chrome pour bypasser Cloudflare."""
+    """Fetch et parse le flux RSS via ScraperAPI pour bypasser Cloudflare."""
     try:
-        resp = cffi_requests.get(RSS_URL, impersonate="chrome110", timeout=15)
+        resp = httpx.get(_scraper_url(RSS_URL), timeout=30)
         resp.raise_for_status()
         feed = feedparser.parse(resp.content)
         print(f"[RSS] Feed fetché: {len(feed.entries)} entrées")
@@ -61,7 +64,7 @@ def _parse_rss2json(data: dict) -> list[dict]:
 def fetch_article_content(url: str) -> dict:
     """Fetch full article page and extract content + og:image."""
     try:
-        resp = cffi_requests.get(url, impersonate="chrome110", timeout=15)
+        resp = httpx.get(_scraper_url(url), timeout=30)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
