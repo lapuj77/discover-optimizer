@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Form
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
@@ -197,6 +197,56 @@ async def report_view(request: Request, report_id: int):
         "article": data,
         "report": report,
     })
+
+
+@app.post("/analyze")
+async def analyze_url(url: str = Form(...)):
+    """Analyse manuelle d'une URL."""
+    # Vérifie si déjà analysé
+    with get_conn() as conn:
+        existing = conn.execute("SELECT r.id FROM reports r JOIN articles a ON a.id = r.article_id WHERE a.link = ?", (url,)).fetchone()
+        if existing:
+            return RedirectResponse(f"/report/{existing['id']}", status_code=303)
+
+    # Fetch contenu
+    page_data = fetch_article_content(url)
+    if not page_data.get("full_content"):
+        raise HTTPException(status_code=422, detail="Impossible de récupérer le contenu de cette URL.")
+
+    item = {
+        "guid": url,
+        "title": page_data.get("og_title") or url,
+        "link": url,
+        "author": "",
+        "published_at": "",
+        "categories": "",
+        "description": page_data.get("og_description", ""),
+        **page_data,
+    }
+
+    # Save article
+    with get_conn() as conn:
+        cur = conn.execute("""
+            INSERT OR IGNORE INTO articles (guid, title, link, author, published_at, categories, description, full_content, og_image)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (item["guid"], item["title"], item["link"], item["author"],
+              item["published_at"], item["categories"], item["description"],
+              item.get("full_content", ""), item.get("og_image", "")))
+        article_id = cur.lastrowid
+
+    # Analyze
+    report_data = analyze_article(item)
+
+    # Save report
+    with get_conn() as conn:
+        cur = conn.execute("""
+            INSERT INTO reports (article_id, score_before, score_after, report_html, report_json)
+            VALUES (?, ?, ?, ?, ?)
+        """, (article_id, report_data.get("score_before", 0), report_data.get("score_after", 0),
+              "", json.dumps(report_data, ensure_ascii=False)))
+        report_id = cur.lastrowid
+
+    return RedirectResponse(f"/report/{report_id}", status_code=303)
 
 
 @app.post("/trigger-poll")

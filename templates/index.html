@@ -24,6 +24,11 @@
   </header>
 
   <main class="container">
+    <form class="analyze-form" method="POST" action="/analyze" onsubmit="this.querySelector('button').textContent='⏳ Analyse en cours…'; this.querySelector('button').disabled=true;">
+      <input type="url" name="url" placeholder="Coller l'URL d'un article Journal du Geek…" required autocomplete="off">
+      <button type="submit">Analyser →</button>
+    </form>
+
     {% if not articles %}
     <div class="empty-state">
       <div class="empty-icon">📡</div>
