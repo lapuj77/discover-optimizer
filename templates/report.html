@@ -196,12 +196,20 @@
         <strong>Tu as appliqué les corrections ?</strong>
         <span>Relance l'analyse pour voir l'impact des modifications sur le score Discover.</span>
       </div>
-      <form method="POST" action="/reanalyze/{{ article.report_id }}">
-        <button type="submit" class="btn-reanalyze-main"
-          onclick="this.innerHTML='<span class=spinner></span> Analyse en cours…';this.disabled=true">
+      <form method="POST" action="/reanalyze/{{ article.report_id }}" id="reanalyze-form" onsubmit="startReanalyze(this)">
+        <button type="submit" class="btn-reanalyze-main" id="btn-reanalyze">
           ↻ Re-analyser l'article
         </button>
       </form>
+    </div>
+
+    <!-- Progress bar re-analyse -->
+    <div class="progress-wrap" id="reanalyze-progress" style="display:none; margin: 0 0 32px">
+      <div class="progress-stage" id="reanalyze-stage">Connexion à l'article…</div>
+      <div class="progress-track">
+        <div class="progress-bar" id="reanalyze-bar"></div>
+      </div>
+      <div class="progress-pct" id="reanalyze-pct">0%</div>
     </div>
 
   </main>
@@ -213,6 +221,34 @@
         const orig = hint.textContent;
         hint.textContent = '✅ Copié !';
         setTimeout(() => hint.textContent = orig, 1500);
+      });
+    }
+
+    const REANALYZE_STAGES = [
+      { pct: 8,  label: 'Connexion à l\'article…',                   t: 0 },
+      { pct: 28, label: 'Récupération du contenu via ScraperAPI…',    t: 2000 },
+      { pct: 52, label: 'Envoi à Claude pour analyse Discover…',      t: 8000 },
+      { pct: 74, label: 'Analyse des signaux E-E-A-T et pCTR…',       t: 14000 },
+      { pct: 88, label: 'Génération du rapport mis à jour…',          t: 22000 },
+      { pct: 96, label: 'Finalisation…',                              t: 28000 },
+    ];
+
+    function startReanalyze(form) {
+      const btn = document.getElementById('btn-reanalyze');
+      btn.disabled = true;
+      btn.textContent = 'Analyse en cours…';
+
+      document.getElementById('reanalyze-progress').style.display = 'block';
+      const bar = document.getElementById('reanalyze-bar');
+      const pct = document.getElementById('reanalyze-pct');
+      const lbl = document.getElementById('reanalyze-stage');
+
+      REANALYZE_STAGES.forEach(s => {
+        setTimeout(() => {
+          bar.style.width = s.pct + '%';
+          pct.textContent = s.pct + '%';
+          lbl.textContent = s.label;
+        }, s.t);
       });
     }
   </script>

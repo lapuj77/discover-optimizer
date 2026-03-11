@@ -75,7 +75,8 @@ async def dashboard(request: Request):
 async def report_view(request: Request, report_id: int):
     with get_conn() as conn:
         row = conn.execute("""
-            SELECT r.*, a.title, a.link, a.author, a.published_at, a.categories, a.og_image
+            SELECT r.id as report_id, r.score_before, r.score_after, r.report_json, r.created_at,
+                   a.title, a.link, a.author, a.published_at, a.categories, a.og_image
             FROM reports r JOIN articles a ON a.id = r.article_id
             WHERE r.id = ?
         """, (report_id,)).fetchone()
