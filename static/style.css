@@ -638,7 +638,51 @@ a:hover { text-decoration: underline; }
 .trend-context { font-size: .88rem; line-height: 1.6; }
 .freshness { font-size: .82rem; color: var(--muted); }
 
-/* Re-analyze */
+/* Re-analyze block */
+.reanalyze-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--jdg);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-top: 8px;
+}
+
+.reanalyze-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reanalyze-info strong {
+  font-size: .95rem;
+  color: var(--text);
+}
+
+.reanalyze-info span {
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+.btn-reanalyze-main {
+  background: var(--jdg);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .2s, box-shadow .2s;
+}
+.btn-reanalyze-main:hover { background: var(--jdg-light); box-shadow: 0 0 16px var(--jdg-glow); }
+.btn-reanalyze-main:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Re-analyze (small, in header) */
 .btn-reanalyze {
   background: none;
   border: 1px solid rgba(255,255,255,.2);

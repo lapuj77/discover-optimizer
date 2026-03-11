@@ -35,13 +35,6 @@
           {% if article.author %}<span class="author">{{ article.author }}</span><span class="sep">·</span>{% endif %}
           {% if article.published_at %}<span class="date">{{ article.published_at[:16] }}</span><span class="sep">·</span>{% endif %}
           <a href="{{ article.link }}" target="_blank" class="article-link">Voir l'article ↗</a>
-          <span class="sep">·</span>
-          <form method="POST" action="/reanalyze/{{ article.report_id }}" style="display:inline">
-            <button type="submit" class="btn-reanalyze" onclick="this.textContent='⏳…';this.disabled=true">↻ Re-analyser</button>
-          </form>
-          {% if request.query_params.get('reanalyzing') %}
-          <span class="reanalyzing-badge">⏳ Mise à jour en cours…</span>
-          {% endif %}
         </div>
         <h1 class="report-title">{{ article.title }}</h1>
         {% if article.categories %}
@@ -196,6 +189,21 @@
       </div>
     </div>
     {% endif %}
+
+    <!-- Re-analyser -->
+    <div class="reanalyze-block">
+      <div class="reanalyze-info">
+        <strong>Tu as appliqué les corrections ?</strong>
+        <span>Relance l'analyse pour voir l'impact des modifications sur le score Discover.</span>
+      </div>
+      <form method="POST" action="/reanalyze/{{ article.report_id }}">
+        {% if request.query_params.get('reanalyzing') %}
+        <button type="button" class="btn-reanalyze-main" disabled>⏳ Mise à jour en cours…</button>
+        {% else %}
+        <button type="submit" class="btn-reanalyze-main" onclick="this.textContent='⏳ Analyse en cours…';this.disabled=true">↻ Re-analyser l'article</button>
+        {% endif %}
+      </form>
+    </div>
 
   </main>
 
