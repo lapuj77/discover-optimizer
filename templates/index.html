@@ -29,8 +29,7 @@
 
   <main class="container">
 
-    <form class="analyze-form" method="POST" action="/analyze"
-      onsubmit="this.querySelector('.btn-analyze').innerHTML='<span class=spinner></span> Analyse…'; this.querySelector('.btn-analyze').disabled=true;">
+    <form class="analyze-form" method="POST" action="/analyze" id="analyze-form" onsubmit="startProgress(this)">
       <div class="analyze-row">
         <div class="input-wrap">
           <span class="input-icon">🔗</span>
@@ -45,6 +44,15 @@
       <textarea name="content" class="article-content-input" style="display:none"></textarea>
       {% endif %}
     </form>
+
+    <!-- Progress bar (hidden until analysis starts) -->
+    <div class="progress-wrap" id="progress-wrap" style="display:none">
+      <div class="progress-stage" id="progress-stage">Connexion à l'article…</div>
+      <div class="progress-track">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
 
     {% if not articles %}
     <div class="empty-state">
@@ -103,6 +111,36 @@
       const g = (s.avg_score_after - s.avg_score_before).toFixed(1);
       document.getElementById('stat-gain').textContent = '+' + g + ' pts';
     });
+
+    const STAGES = [
+      { pct: 8,  label: 'Connexion à l\'article…' },
+      { pct: 28, label: 'Récupération du contenu via ScraperAPI…' },
+      { pct: 52, label: 'Envoi à Claude pour analyse Discover…' },
+      { pct: 74, label: 'Analyse des signaux E-E-A-T et pCTR…' },
+      { pct: 88, label: 'Génération du rapport…' },
+      { pct: 96, label: 'Finalisation…' },
+    ];
+
+    function startProgress(form) {
+      form.querySelector('.btn-analyze').disabled = true;
+      form.querySelector('.btn-analyze').textContent = 'Analyse en cours…';
+      document.getElementById('progress-wrap').style.display = 'block';
+
+      const bar  = document.getElementById('progress-bar');
+      const pct  = document.getElementById('progress-pct');
+      const lbl  = document.getElementById('progress-stage');
+
+      // Realistic timings: fetch ~8s, Claude ~20s, total ~30s
+      const timings = [0, 2000, 8000, 14000, 22000, 28000];
+
+      STAGES.forEach((s, i) => {
+        setTimeout(() => {
+          bar.style.width = s.pct + '%';
+          pct.textContent = s.pct + '%';
+          lbl.textContent = s.label;
+        }, timings[i]);
+      });
+    }
   </script>
 </body>
 </html>
