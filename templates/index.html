@@ -9,92 +9,82 @@
 <body>
   <header class="header">
     <div class="header-inner">
-      <div class="header-left">
-        <span class="logo">⚡ Discover Optimizer</span>
-        <span class="subtitle">Journal du Geek</span>
-      </div>
-      <div class="header-right">
-        <div id="stats" class="stats-bar">
-          <span class="stat" id="stat-articles">— articles</span>
-          <span class="stat" id="stat-gain">gain moyen —pts</span>
+      <div class="header-brand">
+        <div class="brand-logo">
+          <span class="brand-journal">JOURNAL DU</span>
+          <span class="brand-geek">GEEK</span>
         </div>
+        <div class="brand-divider"></div>
+        <div class="brand-tool">
+          <span class="brand-tool-name">Discover Optimizer</span>
+          <span class="brand-tool-sub">Optimisation Google Discover</span>
+        </div>
+      </div>
+      <div class="header-stats" id="stats">
+        <div class="hstat"><span id="stat-reports">—</span><small>rapports</small></div>
+        <div class="hstat hstat--accent"><span id="stat-gain">—</span><small>gain moyen</small></div>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <form class="analyze-form" method="POST" action="/analyze" onsubmit="this.querySelector('.btn-analyze').textContent='⏳ Analyse en cours…'; this.querySelector('.btn-analyze').disabled=true;">
+
+    <form class="analyze-form" method="POST" action="/analyze"
+      onsubmit="this.querySelector('.btn-analyze').innerHTML='<span class=spinner></span> Analyse…'; this.querySelector('.btn-analyze').disabled=true;">
       <div class="analyze-row">
-        <input type="url" name="url" placeholder="URL de l'article…" required autocomplete="off" value="{{ prefill_url or '' }}">
-        <button type="button" class="btn-toggle-content" onclick="toggleContent(this)">+ Coller le contenu</button>
+        <div class="input-wrap">
+          <span class="input-icon">🔗</span>
+          <input type="url" name="url" placeholder="Coller l'URL d'un article Journal du Geek…" required autocomplete="off" value="{{ prefill_url or '' }}">
+        </div>
         <button type="submit" class="btn-analyze">Analyser →</button>
       </div>
       {% if error %}
       <div class="form-error">⚠️ {{ error }}</div>
+      <textarea name="content" class="article-content-input" placeholder="Ouvre l'article → Ctrl+A → Ctrl+C → colle ici (Ctrl+V)…" rows="6"></textarea>
+      {% else %}
+      <textarea name="content" class="article-content-input" style="display:none"></textarea>
       {% endif %}
-      <textarea name="content" class="article-content-input" style="{{ 'display:block' if error else 'display:none' }}" placeholder="Ouvre l'article dans ton navigateur → Ctrl+A → Ctrl+C → colle ici (Ctrl+V)…" rows="8"></textarea>
     </form>
-    <script>
-      function toggleContent(btn) {
-        const ta = btn.closest('form').querySelector('textarea');
-        const show = ta.style.display === 'none';
-        ta.style.display = show ? 'block' : 'none';
-        btn.textContent = show ? '- Masquer' : '+ Coller le contenu';
-      }
-    </script>
 
     {% if not articles %}
     <div class="empty-state">
-      <div class="empty-icon">📡</div>
-      <h2>Scan en cours…</h2>
-      <p>Le premier scan RSS est lancé au démarrage. Reviens dans quelques instants.</p>
+      <div class="empty-icon">🎯</div>
+      <h2>Prêt à optimiser</h2>
+      <p>Colle l'URL d'un article JDG ci-dessus pour générer ton premier rapport Discover.</p>
     </div>
     {% else %}
     <div class="grid">
       {% for a in articles %}
       <article class="card" onclick="window.location='/report/{{ a.report_id }}'">
-        {% if a.og_image %}
-        <div class="card-image">
-          <img src="{{ a.og_image }}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
+        <div class="card-image {% if not a.og_image %}card-image--empty{% endif %}">
+          {% if a.og_image %}
+          <img src="{{ a.og_image }}" alt="" loading="lazy" onerror="this.parentElement.classList.add('card-image--empty'); this.remove()">
+          {% else %}
+          <span>Pas d'image OG</span>
+          {% endif %}
+          <div class="card-score-badge {% if a.score_delta > 15 %}badge--high{% elif a.score_delta > 5 %}badge--mid{% else %}badge--low{% endif %}">
+            +{{ a.score_delta }} pts
+          </div>
         </div>
-        {% else %}
-        <div class="card-image card-image--empty">
-          <span>🖼️ Pas d'image OG</span>
-        </div>
-        {% endif %}
-
         <div class="card-body">
           <div class="card-meta">
-            <span class="author">{{ a.author }}</span>
-            <span class="date">{{ a.published_at[:16] if a.published_at else '' }}</span>
+            {% if a.author %}<span class="author">{{ a.author }}</span>{% endif %}
+            <span class="date">{{ a.created_at[:10] if a.created_at else '' }}</span>
           </div>
-
           <h2 class="card-title">{{ a.title }}</h2>
-
           {% if a.categories %}
           <div class="tags">
-            {% for cat in a.categories.split(', ')[:4] %}
+            {% for cat in a.categories.split(', ')[:3] %}
             <span class="tag">{{ cat }}</span>
             {% endfor %}
           </div>
           {% endif %}
-
           <p class="verdict">{{ a.verdict }}</p>
-
           <div class="card-footer">
             <div class="scores">
-              <div class="score score--before">
-                <span class="score-label">Avant</span>
-                <span class="score-value">{{ a.score_before }}</span>
-              </div>
-              <div class="score-arrow">→</div>
-              <div class="score score--after">
-                <span class="score-label">Après</span>
-                <span class="score-value">{{ a.score_after }}</span>
-              </div>
-              <div class="score-delta {% if a.score_delta > 15 %}delta--high{% elif a.score_delta > 5 %}delta--mid{% else %}delta--low{% endif %}">
-                +{{ a.score_delta }}
-              </div>
+              <span class="score-num score-num--before">{{ a.score_before }}</span>
+              <span class="score-arrow">→</span>
+              <span class="score-num score-num--after">{{ a.score_after }}</span>
             </div>
             {% if a.critical_count > 0 %}
             <span class="badge badge--critical">{{ a.critical_count }} critique{% if a.critical_count > 1 %}s{% endif %}</span>
@@ -108,15 +98,11 @@
   </main>
 
   <script>
-    async function loadStats() {
-      const r = await fetch('/api/stats');
-      const s = await r.json();
-      document.getElementById('stat-articles').textContent = `${s.total_articles} articles`;
-      const gain = (s.avg_score_after - s.avg_score_before).toFixed(1);
-      document.getElementById('stat-gain').textContent = `gain moyen +${gain}pts`;
-    }
-
-    loadStats();
+    fetch('/api/stats').then(r=>r.json()).then(s=>{
+      document.getElementById('stat-reports').textContent = s.total_reports;
+      const g = (s.avg_score_after - s.avg_score_before).toFixed(1);
+      document.getElementById('stat-gain').textContent = '+' + g + ' pts';
+    });
   </script>
 </body>
 </html>

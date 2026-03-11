@@ -9,8 +9,17 @@
 <body>
   <header class="header">
     <div class="header-inner">
-      <a href="/" class="back-link">← Dashboard</a>
-      <span class="logo">⚡ Discover Optimizer</span>
+      <a href="/" class="back-link">← Retour</a>
+      <div class="header-brand">
+        <div class="brand-logo">
+          <span class="brand-journal">JOURNAL DU</span>
+          <span class="brand-geek">GEEK</span>
+        </div>
+        <div class="brand-divider"></div>
+        <div class="brand-tool">
+          <span class="brand-tool-name">Discover Optimizer</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -23,14 +32,12 @@
       {% endif %}
       <div class="report-hero-content">
         <div class="report-meta">
-          <span class="author">{{ article.author }}</span>
-          <span class="sep">·</span>
-          <span class="date">{{ article.published_at[:16] if article.published_at else '' }}</span>
-          <span class="sep">·</span>
+          {% if article.author %}<span class="author">{{ article.author }}</span><span class="sep">·</span>{% endif %}
+          {% if article.published_at %}<span class="date">{{ article.published_at[:16] }}</span><span class="sep">·</span>{% endif %}
           <a href="{{ article.link }}" target="_blank" class="article-link">Voir l'article ↗</a>
           <span class="sep">·</span>
           <form method="POST" action="/reanalyze/{{ article.report_id }}" style="display:inline">
-            <button type="submit" class="btn-reanalyze" onclick="this.textContent='⏳ En cours…';this.disabled=true">↻ Re-analyser</button>
+            <button type="submit" class="btn-reanalyze" onclick="this.textContent='⏳…';this.disabled=true">↻ Re-analyser</button>
           </form>
           {% if request.query_params.get('reanalyzing') %}
           <span class="reanalyzing-badge">⏳ Mise à jour en cours…</span>
@@ -49,31 +56,29 @@
 
     <!-- Score & Verdict -->
     <div class="report-section score-section">
-      <div class="score-card">
-        <div class="score-display">
-          <div class="score-block">
-            <div class="score-big">{{ report.score_before }}</div>
-            <div class="score-label">Score actuel</div>
-            <div class="score-bar-wrap"><div class="score-bar score-bar--before" style="width:{{ report.score_before }}%"></div></div>
-          </div>
-          <div class="score-arrow-big">→</div>
-          <div class="score-block">
-            <div class="score-big score-big--after">{{ report.score_after }}</div>
-            <div class="score-label">Score optimisé</div>
-            <div class="score-bar-wrap"><div class="score-bar score-bar--after" style="width:{{ report.score_after }}%"></div></div>
-          </div>
+      <div class="score-display">
+        <div class="score-block">
+          <div class="score-big">{{ report.score_before }}</div>
+          <div class="score-label">Score actuel</div>
+          <div class="score-bar-wrap"><div class="score-bar score-bar--before" style="width:{{ report.score_before }}%"></div></div>
         </div>
-        <div class="verdict-box">
-          <span class="verdict-icon">💡</span>
-          <p class="verdict-text">{{ report.verdict }}</p>
+        <div class="score-arrow-big">→</div>
+        <div class="score-block">
+          <div class="score-big score-big--after">{{ report.score_after }}</div>
+          <div class="score-label">Score optimisé</div>
+          <div class="score-bar-wrap"><div class="score-bar score-bar--after" style="width:{{ report.score_after }}%"></div></div>
         </div>
+      </div>
+      <div class="verdict-box">
+        <span class="verdict-icon">💡</span>
+        <p class="verdict-text">{{ report.verdict }}</p>
       </div>
     </div>
 
     <!-- Quick Wins -->
     {% if report.quick_wins %}
     <div class="report-section">
-      <h2 class="section-title">⚡ Quick Wins (moins de 5 min)</h2>
+      <h2 class="section-title">⚡ Quick Wins <span class="section-sub">moins de 5 min</span></h2>
       <ul class="quick-wins">
         {% for win in report.quick_wins %}
         <li>{{ win }}</li>
@@ -93,17 +98,10 @@
             <span class="fix-priority fix-priority--{{ fix.priority | lower }}">{{ fix.priority }}</span>
             <span class="fix-category">{{ fix.category }}</span>
           </div>
-          <div class="fix-problem">
-            <strong>Problème :</strong> {{ fix.problem }}
-          </div>
-          <div class="fix-action">
-            <strong>Action :</strong> {{ fix.action }}
-          </div>
+          <div class="fix-problem"><strong>Problème :</strong> {{ fix.problem }}</div>
+          <div class="fix-action"><strong>Action :</strong> {{ fix.action }}</div>
           {% if fix.example %}
-          <div class="fix-example">
-            <strong>Exemple :</strong>
-            <blockquote>{{ fix.example }}</blockquote>
-          </div>
+          <div class="fix-example"><strong>Exemple :</strong><blockquote>{{ fix.example }}</blockquote></div>
           {% endif %}
         </div>
         {% endfor %}
@@ -120,7 +118,7 @@
         <div class="title-rewrite" onclick="copyText(this, '{{ t | replace("'", "\\'") }}')">
           <span class="title-rewrite-text">{{ t }}</span>
           <span class="title-len {% if t|length > 80 %}len--bad{% elif t|length >= 50 %}len--good{% else %}len--ok{% endif %}">{{ t|length }} car.</span>
-          <span class="copy-hint">Cliquer pour copier</span>
+          <span class="copy-hint">Copier</span>
         </div>
         {% endfor %}
       </div>
@@ -133,80 +131,68 @@
       <h2 class="section-title">📝 og:description optimisée</h2>
       <div class="description-rewrite" onclick="copyText(this, '{{ report.og_description_rewrite | replace("'", "\\'") }}')">
         <p>{{ report.og_description_rewrite }}</p>
-        <span class="copy-hint">Cliquer pour copier</span>
+        <span class="copy-hint">Copier</span>
       </div>
     </div>
     {% endif %}
 
-    <!-- Image Status -->
-    {% if report.image_status %}
-    <div class="report-section">
-      <h2 class="section-title">🖼️ Analyse image</h2>
-      <div class="image-status">
-        <div class="image-check">
-          <span class="check-icon">{{ '✅' if report.image_status.has_image else '❌' }}</span>
-          <span>Image og:image présente</span>
-        </div>
-        <div class="image-check">
-          <span class="check-icon">{{ '✅' if report.image_status.max_image_preview_detected else '❌' }}</span>
-          <span>Meta <code>max-image-preview:large</code> détectée</span>
-        </div>
-        <div class="image-check">
-          <span class="check-icon">{{ '✅' if report.image_status.estimated_width_ok else '⚠️' }}</span>
-          <span>Largeur estimée ≥ 1200px</span>
-        </div>
-        {% if report.image_status.recommendation %}
-        <div class="image-recommendation">
-          💬 {{ report.image_status.recommendation }}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Entities -->
-    {% if report.entity_analysis %}
-    <div class="report-section">
-      <h2 class="section-title">🧬 Entités Knowledge Graph</h2>
-      <div class="entity-grid">
-        <div class="entity-col">
-          <h3>Entités détectées</h3>
-          <div class="entity-tags">
-            {% for e in report.entity_analysis.entities_found %}
-            <span class="entity-tag entity-tag--found">{{ e }}</span>
-            {% endfor %}
+    <!-- Image + Entities side by side -->
+    <div class="two-col">
+      {% if report.image_status %}
+      <div class="report-section">
+        <h2 class="section-title">🖼️ Image</h2>
+        <div class="image-status">
+          <div class="image-check">
+            <span class="check-icon">{{ '✅' if report.image_status.has_image else '❌' }}</span>
+            <span>og:image présente</span>
           </div>
+          <div class="image-check">
+            <span class="check-icon">{{ '✅' if report.image_status.max_image_preview_detected else '❌' }}</span>
+            <span><code>max-image-preview:large</code></span>
+          </div>
+          <div class="image-check">
+            <span class="check-icon">{{ '✅' if report.image_status.estimated_width_ok else '⚠️' }}</span>
+            <span>Largeur ≥ 1200px</span>
+          </div>
+          {% if report.image_status.recommendation %}
+          <div class="image-recommendation">{{ report.image_status.recommendation }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if report.entity_analysis %}
+      <div class="report-section">
+        <h2 class="section-title">🧬 Entités Knowledge Graph</h2>
+        <div class="entity-tags" style="margin-bottom:10px">
+          {% for e in report.entity_analysis.entities_found %}
+          <span class="entity-tag entity-tag--found">{{ e }}</span>
+          {% endfor %}
         </div>
         {% if report.entity_analysis.entities_missing %}
-        <div class="entity-col">
-          <h3>Entités manquantes</h3>
-          <div class="entity-tags">
-            {% for e in report.entity_analysis.entities_missing %}
-            <span class="entity-tag entity-tag--missing">{{ e }}</span>
-            {% endfor %}
-          </div>
+        <div class="entity-tags">
+          {% for e in report.entity_analysis.entities_missing %}
+          <span class="entity-tag entity-tag--missing">+ {{ e }}</span>
+          {% endfor %}
         </div>
         {% endif %}
+        <div class="kg-strength" style="margin-top:10px">
+          Ancrage KG : <span class="strength strength--{{ report.entity_analysis.knowledge_graph_strength }}">{{ report.entity_analysis.knowledge_graph_strength | upper }}</span>
+        </div>
       </div>
-      <div class="kg-strength">
-        Ancrage Knowledge Graph :
-        <span class="strength strength--{{ report.entity_analysis.knowledge_graph_strength }}">
-          {{ report.entity_analysis.knowledge_graph_strength | upper }}
-        </span>
-      </div>
+      {% endif %}
     </div>
-    {% endif %}
 
-    <!-- Trend Alignment -->
+    <!-- Trend -->
     {% if report.trend_alignment %}
     <div class="report-section">
-      <h2 class="section-title">📡 Alignement sur les tendances</h2>
+      <h2 class="section-title">📡 Tendance & fraîcheur</h2>
       <div class="trend-box">
         <div class="trend-badge {% if report.trend_alignment.is_timely %}trend--timely{% else %}trend--evergreen{% endif %}">
           {{ '⚡ Timely' if report.trend_alignment.is_timely else '🌿 Evergreen' }}
         </div>
         <p class="trend-context">{{ report.trend_alignment.trend_context }}</p>
-        <div class="freshness">⏱️ Durée de vie estimée dans Discover : <strong>{{ report.trend_alignment.freshness_window }}</strong></div>
+        <div class="freshness">Durée de vie estimée dans Discover : <strong>{{ report.trend_alignment.freshness_window }}</strong></div>
       </div>
     </div>
     {% endif %}
