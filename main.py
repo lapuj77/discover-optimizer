@@ -64,7 +64,7 @@ async def poll_rss(force: bool = False):
         return
     print("[RSS] Polling en cours...")
     try:
-        items = fetch_rss_items()
+        items = await asyncio.to_thread(fetch_rss_items)
     except Exception as e:
         print(f"[RSS] Erreur fetch RSS: {e}")
         return
@@ -80,8 +80,8 @@ async def poll_rss(force: bool = False):
                 if exists:
                     continue
 
-            # Fetch full content (hors transaction)
-            page_data = fetch_article_content(item["link"])
+            # Fetch full content (hors transaction, dans un thread pour ne pas bloquer asyncio)
+            page_data = await asyncio.to_thread(fetch_article_content, item["link"])
             item.update(page_data)
 
             # Save article
@@ -97,9 +97,9 @@ async def poll_rss(force: bool = False):
                 article_id = cur.lastrowid
             print(f"[RSS] Nouvel article sauvé: {item['title'][:60]}")
 
-            # Analyze with Claude
+            # Analyze with Claude (dans un thread)
             try:
-                report_data = analyze_article(item)
+                report_data = await asyncio.to_thread(analyze_article, item)
             except Exception as e:
                 print(f"[Analyzer] Erreur: {e}")
                 continue
@@ -217,7 +217,7 @@ async def analyze_url(url: str = Form(...), content: str = Form(default="")):
         }, status_code=422)
 
     # Tente le fetch pour récupérer og:image / og:title, ignore les erreurs
-    page_data = fetch_article_content(url)
+    page_data = await asyncio.to_thread(fetch_article_content, url)
     if not page_data.get("full_content"):
         page_data["full_content"] = content.strip()
 
@@ -242,8 +242,8 @@ async def analyze_url(url: str = Form(...), content: str = Form(default="")):
               item.get("full_content", ""), item.get("og_image", "")))
         article_id = cur.lastrowid
 
-    # Analyze
-    report_data = analyze_article(item)
+    # Analyze (dans un thread)
+    report_data = await asyncio.to_thread(analyze_article, item)
 
     # Save report
     with get_conn() as conn:
