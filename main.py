@@ -6,11 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, HTTPException, Form, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 
 from database import init_db, get_conn
 from fetcher import fetch_article_content
@@ -18,6 +20,19 @@ from analyzer import analyze_article, analyze_draft
 from discord_notify import send_report
 
 BASE_URL = os.getenv("BASE_URL", f"http://localhost:{os.getenv('PORT', '8000')}")
+
+_security = HTTPBasic()
+_USERNAME = os.getenv("APP_USERNAME", "jdg")
+_PASSWORD = os.getenv("APP_PASSWORD", "discover")
+
+def require_auth(credentials: HTTPBasicCredentials = Depends(_security)):
+    ok = (
+        secrets.compare_digest(credentials.username.encode(), _USERNAME.encode()) and
+        secrets.compare_digest(credentials.password.encode(), _PASSWORD.encode())
+    )
+    if not ok:
+        raise HTTPException(status_code=401, detail="Accès refusé",
+                            headers={"WWW-Authenticate": "Basic"})
 
 
 # ─── Startup / Shutdown ──────────────────────────────────────────────────────
@@ -28,7 +43,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Discover Optimizer", lifespan=lifespan)
+app = FastAPI(title="Discover Optimizer", lifespan=lifespan,
+             dependencies=[Depends(require_auth)])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
