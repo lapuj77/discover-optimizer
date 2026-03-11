@@ -127,15 +127,16 @@ async def analyze_url(request: Request, url: str = Form(...), content: str = For
         **page_data,
     }
 
-    # Save article
+    # Save article (récupère l'id existant si déjà en base)
     with get_conn() as conn:
-        cur = conn.execute("""
+        conn.execute("""
             INSERT OR IGNORE INTO articles (guid, title, link, author, published_at, categories, description, full_content, og_image)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (item["guid"], item["title"], item["link"], item["author"],
               item["published_at"], item["categories"], item["description"],
               item.get("full_content", ""), item.get("og_image", "")))
-        article_id = cur.lastrowid
+        row = conn.execute("SELECT id FROM articles WHERE guid = ?", (item["guid"],)).fetchone()
+        article_id = row["id"]
 
     # Analyze (dans un thread)
     report_data = await asyncio.to_thread(analyze_article, item)
