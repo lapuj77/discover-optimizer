@@ -200,7 +200,7 @@ async def report_view(request: Request, report_id: int):
 
 
 @app.post("/analyze")
-async def analyze_url(url: str = Form(...), content: str = Form(default="")):
+async def analyze_url(request: Request, url: str = Form(...), content: str = Form(default="")):
     """Analyse manuelle d'une URL."""
     # Vérifie si déjà analysé
     with get_conn() as conn:
