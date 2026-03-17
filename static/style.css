@@ -207,7 +207,8 @@ a:hover { text-decoration: underline; }
   pointer-events: none;
 }
 
-.analyze-form input[type="url"] {
+.analyze-form input[type="url"],
+.analyze-form input[type="text"] {
   width: 100%;
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -218,11 +219,13 @@ a:hover { text-decoration: underline; }
   outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
-.analyze-form input[type="url"]:focus {
+.analyze-form input[type="url"]:focus,
+.analyze-form input[type="text"]:focus {
   border-color: var(--jdg);
   box-shadow: 0 0 0 3px var(--jdg-glow);
 }
-.analyze-form input[type="url"]::placeholder { color: var(--muted); }
+.analyze-form input[type="url"]::placeholder,
+.analyze-form input[type="text"]::placeholder { color: var(--muted); }
 
 .btn-analyze {
   background: var(--jdg);
