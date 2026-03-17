@@ -247,8 +247,11 @@
         bar.style.width = '100%'; pct.textContent = '100%'; lbl.textContent = 'Terminé !';
 
         // Tags
+        const tags = data.tags || [];
         const tagsEl = document.getElementById('quick-tags');
-        tagsEl.innerHTML = (data.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+        const tagsStr = tags.join(', ');
+        tagsEl.innerHTML = tags.map((t, i) => `<span class="tag">${t}${i < tags.length - 1 ? ',' : ''}</span>`).join('') +
+          `<button class="copy-btn" style="margin-left:8px" onclick="copyText(this, '${tagsStr.replace(/'/g,"\\'")}')">Copier tout</button>`;
 
         // Titres
         const titlesEl = document.getElementById('quick-titles');
