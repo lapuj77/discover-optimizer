@@ -16,7 +16,7 @@ import secrets
 
 from database import init_db, get_conn
 from fetcher import fetch_article_content
-from analyzer import analyze_article, analyze_draft
+from analyzer import analyze_article, analyze_draft, quick_optimize
 from discord_notify import send_report
 
 BASE_URL = os.getenv("BASE_URL", f"http://localhost:{os.getenv('PORT', '8000')}")
@@ -265,6 +265,13 @@ async def reanalyze(report_id: int):
             UPDATE articles SET full_content=?, og_image=? WHERE id=?
         """, (page_data.get("full_content", ""), page_data.get("og_image", ""), article_id))
 
+
+
+@app.post("/quick-optimize")
+async def quick_optimize_route(subject: str = Form(...)):
+    """Génère tags, noms de fichier image, alt texts et titres Discover à partir d'un sujet."""
+    result = await asyncio.to_thread(quick_optimize, subject)
+    return JSONResponse(result)
 
 
 @app.get("/api/stats")

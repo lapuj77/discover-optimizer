@@ -33,6 +33,7 @@
     <div class="mode-tabs">
       <button class="mode-tab mode-tab--active" onclick="switchTab('url', this)">🔗 URL existante</button>
       <button class="mode-tab" onclick="switchTab('draft', this)">✍️ Article brouillon</button>
+      <button class="mode-tab" onclick="switchTab('quick', this)">⚡ Opti rapide</button>
     </div>
 
     <!-- Tab URL -->
@@ -89,6 +90,57 @@
         <div class="progress-stage" id="draft-progress-stage">Analyse du contenu…</div>
         <div class="progress-track"><div class="progress-bar" id="draft-progress-bar"></div></div>
         <div class="progress-pct" id="draft-progress-pct">0%</div>
+      </div>
+    </div>
+
+    <!-- Tab Opti rapide -->
+    <div id="tab-quick" style="display:none">
+      <form class="analyze-form" id="quick-form" onsubmit="runQuickOptimize(event)">
+        <div class="analyze-row">
+          <div class="input-wrap">
+            <span class="input-icon">⚡</span>
+            <input type="text" id="quick-subject" placeholder="Sujet de l'article (ex: Google lance Gemini 2.0 Ultra…)" required autocomplete="off">
+          </div>
+          <button type="submit" class="btn-analyze" id="quick-btn">Générer →</button>
+        </div>
+      </form>
+
+      <div id="quick-loading" style="display:none">
+        <div class="progress-wrap" style="display:block">
+          <div class="progress-stage" id="quick-progress-stage">Génération en cours…</div>
+          <div class="progress-track"><div class="progress-bar" id="quick-progress-bar" style="width:0%"></div></div>
+          <div class="progress-pct" id="quick-progress-pct">0%</div>
+        </div>
+      </div>
+
+      <div id="quick-results" style="display:none">
+        <div class="quick-grid">
+
+          <!-- Tags -->
+          <div class="quick-block">
+            <h3 class="quick-block-title">🏷️ Tags à utiliser</h3>
+            <div id="quick-tags" class="quick-tags-list"></div>
+          </div>
+
+          <!-- Titres Discover -->
+          <div class="quick-block">
+            <h3 class="quick-block-title">📰 Titres optimisés Discover</h3>
+            <ol id="quick-titles" class="quick-proposals"></ol>
+          </div>
+
+          <!-- Noms de fichier image -->
+          <div class="quick-block">
+            <h3 class="quick-block-title">🖼️ Noms de fichier image</h3>
+            <ol id="quick-filenames" class="quick-proposals quick-proposals--code"></ol>
+          </div>
+
+          <!-- Alt texts image -->
+          <div class="quick-block">
+            <h3 class="quick-block-title">🔍 Descriptions alt image</h3>
+            <ol id="quick-alts" class="quick-proposals"></ol>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -153,8 +205,86 @@
     function switchTab(tab, btn) {
       document.getElementById('tab-url').style.display   = tab === 'url'   ? '' : 'none';
       document.getElementById('tab-draft').style.display = tab === 'draft' ? '' : 'none';
+      document.getElementById('tab-quick').style.display = tab === 'quick' ? '' : 'none';
       document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('mode-tab--active'));
       btn.classList.add('mode-tab--active');
+    }
+
+    async function runQuickOptimize(e) {
+      e.preventDefault();
+      const subject = document.getElementById('quick-subject').value.trim();
+      if (!subject) return;
+
+      const btn = document.getElementById('quick-btn');
+      btn.disabled = true;
+      btn.textContent = 'Génération…';
+      document.getElementById('quick-results').style.display = 'none';
+      document.getElementById('quick-loading').style.display = 'block';
+
+      // Animate progress bar
+      const bar = document.getElementById('quick-progress-bar');
+      const pct = document.getElementById('quick-progress-pct');
+      const lbl = document.getElementById('quick-progress-stage');
+      const quickStages = [
+        { p: 15, l: 'Envoi à Claude…',                   t: 0 },
+        { p: 45, l: 'Génération des tags et titres…',    t: 1000 },
+        { p: 75, l: 'Optimisation des métadonnées…',     t: 3000 },
+        { p: 92, l: 'Finalisation…',                     t: 5000 },
+      ];
+      quickStages.forEach(s => setTimeout(() => {
+        bar.style.width = s.p + '%';
+        pct.textContent = s.p + '%';
+        lbl.textContent = s.l;
+      }, s.t));
+
+      try {
+        const fd = new FormData();
+        fd.append('subject', subject);
+        const res = await fetch('/quick-optimize', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Erreur serveur');
+        const data = await res.json();
+
+        bar.style.width = '100%'; pct.textContent = '100%'; lbl.textContent = 'Terminé !';
+
+        // Tags
+        const tagsEl = document.getElementById('quick-tags');
+        tagsEl.innerHTML = (data.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+
+        // Titres
+        const titlesEl = document.getElementById('quick-titles');
+        titlesEl.innerHTML = (data.discover_titles || []).map(t =>
+          `<li class="quick-proposal-item"><span class="quick-proposal-text">${t}</span><button class="copy-btn" onclick="copyText(this, '${t.replace(/'/g,"\\'")}')">Copier</button></li>`
+        ).join('');
+
+        // Noms de fichier
+        const fnEl = document.getElementById('quick-filenames');
+        fnEl.innerHTML = (data.image_filenames || []).map(f =>
+          `<li class="quick-proposal-item"><code class="quick-proposal-code">${f}</code><button class="copy-btn" onclick="copyText(this, '${f.replace(/'/g,"\\'")}')">Copier</button></li>`
+        ).join('');
+
+        // Alt texts
+        const altEl = document.getElementById('quick-alts');
+        altEl.innerHTML = (data.image_alts || []).map(a =>
+          `<li class="quick-proposal-item"><span class="quick-proposal-text">${a}</span><button class="copy-btn" onclick="copyText(this, '${a.replace(/'/g,"\\'")}')">Copier</button></li>`
+        ).join('');
+
+        document.getElementById('quick-loading').style.display = 'none';
+        document.getElementById('quick-results').style.display = 'block';
+      } catch(err) {
+        lbl.textContent = 'Erreur : ' + err.message;
+        bar.style.width = '100%';
+        bar.style.background = '#e74c3c';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Générer →';
+      }
+    }
+
+    function copyText(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copié !';
+        setTimeout(() => btn.textContent = 'Copier', 1500);
+      });
     }
 
     const URL_STAGES = [

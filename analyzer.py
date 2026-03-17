@@ -193,6 +193,60 @@ DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour
 }}"""
 
 
+QUICK_OPTIMIZE_PROMPT = """Tu es un expert SEO Google Discover pour Journal du Geek (média tech/pop culture).
+
+Sujet de l'article : {subject}
+
+Génère en JSON strict :
+{{
+  "tags": ["<tag 1>", "<tag 2>"],
+  "image_filenames": [
+    "<nom-de-fichier-seo-1.jpg>",
+    "<nom-de-fichier-seo-2.jpg>",
+    "<nom-de-fichier-seo-3.jpg>"
+  ],
+  "image_alts": [
+    "<description alt 1>",
+    "<description alt 2>",
+    "<description alt 3>"
+  ],
+  "discover_titles": [
+    "<titre Discover optimisé 1>",
+    "<titre Discover optimisé 2>",
+    "<titre Discover optimisé 3>"
+  ]
+}}
+
+Règles :
+- Tags : 6 à 10 mots-clés courts, sans hashtag, adaptés au CMS JDG (ex: "Intelligence artificielle", "OpenAI", "GPT-5")
+- Noms de fichiers : minuscules, tirets, sans accents, .jpg (ex: "gpt-5-openai-intelligence-artificielle.jpg")
+- Alt texts : descriptifs, entité principale incluse, 8-15 mots, sans "image de" ni "photo de"
+- Titres Discover : 50-80 caractères, angle émotionnel (surprise/curiosité/polémique), entité nommée, évite le clickbait vide
+Réponds UNIQUEMENT avec le JSON, sans markdown."""
+
+
+def quick_optimize(subject: str) -> dict:
+    """Génère tags, noms de fichier image, alt texts et titres Discover à partir d'un sujet."""
+    prompt = QUICK_OPTIMIZE_PROMPT.format(subject=subject)
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    if raw.endswith("```"):
+        raw = raw[:-3].strip()
+
+    return json.loads(raw)
+
+
 def analyze_draft(article_data: dict) -> dict:
     """Send draft article to Claude and get pre-publication Discover optimization report."""
     prompt = DRAFT_PROMPT.format(
