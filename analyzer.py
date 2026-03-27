@@ -227,13 +227,21 @@ Réponds UNIQUEMENT avec le JSON, sans markdown."""
 
 def quick_optimize(subject: str) -> dict:
     """Génère tags, noms de fichier image, alt texts et titres Discover à partir d'un sujet."""
+    import time
     prompt = QUICK_OPTIMIZE_PROMPT.format(subject=subject)
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            break
+        except Exception as e:
+            if attempt == 2 or "overloaded" not in str(e).lower():
+                raise
+            time.sleep(5 * (attempt + 1))
 
     raw = message.content[0].text.strip()
     if raw.startswith("```"):
@@ -257,12 +265,20 @@ def analyze_draft(article_data: dict) -> dict:
         full_content=article_data.get("full_content", "")[:8000],
     )
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-        system=SYSTEM_PROMPT,
-    )
+    import time
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}],
+                system=SYSTEM_PROMPT,
+            )
+            break
+        except Exception as e:
+            if attempt == 2 or "overloaded" not in str(e).lower():
+                raise
+            time.sleep(5 * (attempt + 1))
 
     raw = message.content[0].text.strip()
     if raw.startswith("```"):
@@ -291,14 +307,20 @@ def analyze_article(article_data: dict) -> dict:
         full_content=article_data.get("full_content", "")[:6000],
     )
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        system=SYSTEM_PROMPT,
-    )
+    import time
+    for attempt in range(3):
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}],
+                system=SYSTEM_PROMPT,
+            )
+            break
+        except Exception as e:
+            if attempt == 2 or "overloaded" not in str(e).lower():
+                raise
+            time.sleep(5 * (attempt + 1))
 
     raw = message.content[0].text.strip()
 
