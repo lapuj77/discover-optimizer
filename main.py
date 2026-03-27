@@ -84,7 +84,7 @@ async def dashboard(request: Request):
         data["score_delta"] = data["score_after"] - data["score_before"]
         articles.append(data)
 
-    return templates.TemplateResponse("index.html", {"request": request, "articles": articles})
+    return templates.TemplateResponse(request, "index.html", context={"articles": articles})
 
 
 @app.get("/report/{report_id}", response_class=HTMLResponse)
@@ -102,8 +102,7 @@ async def report_view(request: Request, report_id: int):
 
     data = dict(row)
     report = json.loads(data["report_json"])
-    return templates.TemplateResponse("report.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "report.html", context={
         "article": data,
         "report": report,
     })
@@ -126,8 +125,7 @@ async def analyze_url(request: Request, url: str = Form(...), content: str = For
         page_data["full_content"] = content.strip()
 
     if not page_data.get("full_content"):
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", context={
             "articles": [],
             "error": "Impossible de récupérer le contenu. Utilise le bouton '+ Coller le contenu' comme solution de secours.",
             "prefill_url": url,
