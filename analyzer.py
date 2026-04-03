@@ -40,6 +40,7 @@ ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rap
 7. Angle émotionnel : surprise, curiosité, polémique, urgence, exclusivité
 8. Éviter le clickbait pur (pénalise le pCTR après le 1er cycle)
 9. Image IA : génère 2 prompts prêts pour Midjourney/DALL-E — 1 photoréaliste, 1 illustratif/graphique — en anglais, détaillés (sujet, ambiance, éclairage, style)
+10. Tags CMS : 6 à 10 mots-clés courts, sans hashtag, adaptés au CMS JDG (ex: "Intelligence artificielle", "OpenAI", "GPT-5")
 
 ---
 
@@ -102,6 +103,7 @@ ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rap
     "<action rapide 2>",
     "<action rapide 3>"
   ],
+  "tags": ["<tag 1>", "<tag 2>", "<tag 3>"],
   "image_prompts": [
     "<prompt image IA en anglais, style photoréaliste>",
     "<prompt image IA en anglais, style illustratif/graphique>"
@@ -134,6 +136,7 @@ DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour
 7. Structure du contenu : intro, sous-titres, longueur idéale pour Discover
 8. Éviter le clickbait pur (pénalise le pCTR après le 1er cycle)
 9. Image IA : génère 2 prompts prêts pour Midjourney/DALL-E — 1 photoréaliste, 1 illustratif/graphique — en anglais, détaillés (sujet, ambiance, éclairage, style)
+10. Tags CMS : 6 à 10 mots-clés courts, sans hashtag, adaptés au CMS JDG (ex: "Intelligence artificielle", "OpenAI", "GPT-5")
 
 ---
 
@@ -196,6 +199,7 @@ DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour
     "<action rapide 2>",
     "<action rapide 3>"
   ],
+  "tags": ["<tag 1>", "<tag 2>", "<tag 3>"],
   "image_prompts": [
     "<prompt image IA en anglais, style photoréaliste>",
     "<prompt image IA en anglais, style illustratif/graphique>"

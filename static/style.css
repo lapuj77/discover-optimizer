@@ -974,6 +974,18 @@ a:hover { text-decoration: underline; }
   border-color: var(--jdg-light);
 }
 
+.report-tags-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-tags-copy {
+  flex-shrink: 0;
+  align-self: center;
+}
+
 .image-prompt-text {
   font-style: italic;
   color: var(--muted);

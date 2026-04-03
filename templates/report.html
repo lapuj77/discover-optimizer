@@ -173,6 +173,19 @@
     </div>
     {% endif %}
 
+    <!-- Tags CMS -->
+    {% if report.tags %}
+    <div class="report-section">
+      <h2 class="section-title">🏷️ Tags à utiliser</h2>
+      <div class="report-tags-wrap">
+        <div class="quick-tags-list" id="report-tags">
+          {% for t in report.tags %}<span class="tag">{{ t }}{% if not loop.last %},{% endif %}</span>{% endfor %}
+        </div>
+        <button class="copy-btn report-tags-copy" onclick="copyReportTags()">Copier tout</button>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Bloc meta complet -->
     {% if report.meta_title_rewrites or report.og_title_rewrites %}
     <div class="report-section">
@@ -297,6 +310,16 @@
         const orig = hint.textContent;
         hint.textContent = '✅ Copié !';
         setTimeout(() => hint.textContent = orig, 1500);
+      });
+    }
+
+    function copyReportTags() {
+      const tags = [...document.querySelectorAll('#report-tags .tag')].map(el => el.textContent.replace(/,$/, '').trim());
+      navigator.clipboard.writeText(tags.join(', ')).then(() => {
+        const btn = document.querySelector('.report-tags-copy');
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copié !';
+        setTimeout(() => btn.textContent = orig, 1500);
       });
     }
 
