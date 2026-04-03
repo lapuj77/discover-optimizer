@@ -974,6 +974,27 @@ a:hover { text-decoration: underline; }
   border-color: var(--jdg-light);
 }
 
+.image-prompt-text {
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.quick-block--full {
+  grid-column: 1 / -1;
+}
+
+.quick-proposals--prompt .quick-proposal-item--prompt {
+  align-items: flex-start;
+}
+
+.quick-proposals--prompt .quick-proposal-text {
+  font-size: .84rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 @media (max-width: 680px) {
   .quick-grid { grid-template-columns: 1fr; }
 }

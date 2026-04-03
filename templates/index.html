@@ -140,6 +140,12 @@
             <ol id="quick-alts" class="quick-proposals"></ol>
           </div>
 
+          <!-- Prompts image IA -->
+          <div class="quick-block quick-block--full">
+            <h3 class="quick-block-title">🎨 Prompts image IA (Midjourney / DALL-E)</h3>
+            <ol id="quick-image-prompts" class="quick-proposals quick-proposals--prompt"></ol>
+          </div>
+
         </div>
       </div>
     </div>
@@ -269,6 +275,12 @@
         const altEl = document.getElementById('quick-alts');
         altEl.innerHTML = (data.image_alts || []).map(a =>
           `<li class="quick-proposal-item"><span class="quick-proposal-text">${a}</span><button class="copy-btn" onclick="copyText(this, '${a.replace(/'/g,"\\'")}')">Copier</button></li>`
+        ).join('');
+
+        // Prompts image IA
+        const imgPromptEl = document.getElementById('quick-image-prompts');
+        imgPromptEl.innerHTML = (data.image_prompts || []).map(p =>
+          `<li class="quick-proposal-item quick-proposal-item--prompt"><span class="quick-proposal-text">${p}</span><button class="copy-btn" onclick="copyText(this, '${p.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">Copier</button></li>`
         ).join('');
 
         document.getElementById('quick-loading').style.display = 'none';

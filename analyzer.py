@@ -39,6 +39,7 @@ ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rap
 6. E-E-A-T : auteur visible, expertise démontrée dans le contenu
 7. Angle émotionnel : surprise, curiosité, polémique, urgence, exclusivité
 8. Éviter le clickbait pur (pénalise le pCTR après le 1er cycle)
+9. Image IA : génère 2 prompts prêts pour Midjourney/DALL-E — 1 photoréaliste, 1 illustratif/graphique — en anglais, détaillés (sujet, ambiance, éclairage, style)
 
 ---
 
@@ -100,6 +101,10 @@ ANALYSIS_PROMPT = """Analyse cet article pour Google Discover et génère un rap
     "<action rapide 1 (< 5 min)>",
     "<action rapide 2>",
     "<action rapide 3>"
+  ],
+  "image_prompts": [
+    "<prompt image IA en anglais, style photoréaliste>",
+    "<prompt image IA en anglais, style illustratif/graphique>"
   ]
 }}"""
 
@@ -128,6 +133,7 @@ DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour
 6. E-E-A-T : recommandations pour renforcer l'expertise visible dans le texte
 7. Structure du contenu : intro, sous-titres, longueur idéale pour Discover
 8. Éviter le clickbait pur (pénalise le pCTR après le 1er cycle)
+9. Image IA : génère 2 prompts prêts pour Midjourney/DALL-E — 1 photoréaliste, 1 illustratif/graphique — en anglais, détaillés (sujet, ambiance, éclairage, style)
 
 ---
 
@@ -189,6 +195,10 @@ DRAFT_PROMPT = """Tu vas analyser un article BROUILLON (non encore publié) pour
     "<action rapide 1 à faire avant de publier (< 5 min)>",
     "<action rapide 2>",
     "<action rapide 3>"
+  ],
+  "image_prompts": [
+    "<prompt image IA en anglais, style photoréaliste>",
+    "<prompt image IA en anglais, style illustratif/graphique>"
   ]
 }}"""
 
@@ -214,6 +224,10 @@ Génère en JSON strict :
     "<titre Discover optimisé 1>",
     "<titre Discover optimisé 2>",
     "<titre Discover optimisé 3>"
+  ],
+  "image_prompts": [
+    "<prompt image IA en anglais, style photoréaliste>",
+    "<prompt image IA en anglais, style illustratif/graphique>"
   ]
 }}
 
@@ -222,6 +236,7 @@ Règles :
 - Noms de fichiers : minuscules, tirets, sans accents, .jpg (ex: "gpt-5-openai-intelligence-artificielle.jpg")
 - Alt texts : descriptifs, entité principale incluse, 8-15 mots, sans "image de" ni "photo de"
 - Titres Discover : 50-80 caractères, angle émotionnel (surprise/curiosité/polémique), entité nommée, évite le clickbait vide
+- Prompts image IA : en anglais, détaillés (sujet principal, ambiance, éclairage, style), prêts pour Midjourney ou DALL-E, illustrent l'article sans être du clickbait visuel — 1 style photoréaliste, 1 style illustratif/graphique
 Réponds UNIQUEMENT avec le JSON, sans markdown."""
 
 

@@ -251,6 +251,21 @@
     </div>
     {% endif %}
 
+    <!-- Prompts image IA -->
+    {% if report.image_prompts %}
+    <div class="report-section">
+      <h2 class="section-title">🎨 Prompts image IA <span class="section-sub">Midjourney / DALL-E</span></h2>
+      <div class="image-prompts-list">
+        {% for p in report.image_prompts %}
+        <div class="title-rewrite image-prompt-item" onclick="copyText(this, '{{ p | replace("'", "\\'") }}')">
+          <span class="title-rewrite-text image-prompt-text">{{ p }}</span>
+          <span class="copy-hint">Copier</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Re-analyser -->
     <div class="reanalyze-block">
       <div class="reanalyze-info">
